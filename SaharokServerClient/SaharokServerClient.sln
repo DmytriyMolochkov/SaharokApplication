@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30011.22
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ObjectsProject", "..\ObjectsProject\ObjectsProject.csproj", "{54FB743C-4894-48B5-8C45-6BD3C95DFE60}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Saharok", "..\Saharok\Saharok.csproj", "{19402387-02E4-4BC6-BA3A-F23BFB050BFB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{54FB743C-4894-48B5-8C45-6BD3C95DFE60}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{54FB743C-4894-48B5-8C45-6BD3C95DFE60}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{54FB743C-4894-48B5-8C45-6BD3C95DFE60}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{54FB743C-4894-48B5-8C45-6BD3C95DFE60}.Release|Any CPU.Build.0 = Release|Any CPU
+		{19402387-02E4-4BC6-BA3A-F23BFB050BFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{19402387-02E4-4BC6-BA3A-F23BFB050BFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{19402387-02E4-4BC6-BA3A-F23BFB050BFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{19402387-02E4-4BC6-BA3A-F23BFB050BFB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BB9D1A54-DE72-48F9-8243-0AA57AD93FBD}
+	EndGlobalSection
+EndGlobal
