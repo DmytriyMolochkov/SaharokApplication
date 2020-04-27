@@ -302,14 +302,7 @@ namespace Saharok.ViewModel
                     throw ae;
                 }
 
-                //try
-                //{
-                    FormProject.CreateProject(MyProject);
-                //}
-                //catch (AggregateException ae)
-                //{
-                //    throw ae;
-                //}
+                FormProject.CreateProject(MyProject);
 
                 OnProcessOffEvent();
             }

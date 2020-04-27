@@ -69,62 +69,63 @@ namespace ObjectsProject
             watcher.Deleted += new FileSystemEventHandler(OnDelete);
             watcher.Renamed += new RenamedEventHandler(OnRename);
 
-            void OnDelete(object source, FileSystemEventArgs e)
+
+        }
+        void OnDelete(object source, FileSystemEventArgs e)
+        {
+            if (System.IO.Path.GetDirectoryName(e.FullPath) == PathEditableFiles)
             {
-                if (System.IO.Path.GetDirectoryName(e.FullPath) == PathEditableFiles)
+                string name = System.IO.Path.GetFileName(e.Name);
+                TypeDocumentation deleteElement = TypeDocumentations.Where(item => name == item.Name).FirstOrDefault();
+                if (deleteElement != null)
+                {
+                    Invoke(() => TypeDocumentations.Remove(deleteElement));
+                }
+            }
+            else
+            {
+                GetTypeDocumentation(e.FullPath)?.OnDelete(source, e);
+            }
+        }
+
+        void OnCreate(object source, FileSystemEventArgs e)
+        {
+            if (System.IO.Path.GetDirectoryName(e.FullPath) == PathEditableFiles)
+            {
+                if (Directory.Exists(e.FullPath))
                 {
                     string name = System.IO.Path.GetFileName(e.Name);
-                    TypeDocumentation deleteElement = TypeDocumentations.Where(item => name == item.Name).FirstOrDefault();
-                    if (deleteElement != null)
-                    {
-                        Invoke(() => TypeDocumentations.Remove(deleteElement));
-                    }
-                }
-                else
-                {
-                    GetTypeDocumentation(e.FullPath)?.OnDelete(source, e);
+                    Invoke(() => TypeDocumentations.Add(new TypeDocumentation(e.FullPath, name, this)));
                 }
             }
-
-            void OnCreate(object source, FileSystemEventArgs e)
+            else
             {
-                if (System.IO.Path.GetDirectoryName(e.FullPath) == PathEditableFiles)
+                GetTypeDocumentation(e.FullPath)?.OnCreate(source, e);
+            }
+        }
+
+        void OnRename(object source, RenamedEventArgs e)
+        {
+            if (System.IO.Path.GetDirectoryName(e.OldFullPath) == PathEditableFiles)
+            {
+                if (Directory.Exists(e.FullPath))
                 {
-                    if (Directory.Exists(e.FullPath))
+                    string oldName = System.IO.Path.GetFileName(e.OldName);
+                    string newName = System.IO.Path.GetFileName(e.Name);
+                    string newPath = e.FullPath;
+                    TypeDocumentation renameElement = TypeDocumentations.Where(item => oldName == item.Name).FirstOrDefault();
+                    string oldPath = renameElement.Path;
+                    Invoke(() =>
                     {
-                        string name = System.IO.Path.GetFileName(e.Name);
-                        Invoke(() => TypeDocumentations.Add(new TypeDocumentation(e.FullPath, name, this)));
-                    }
-                }
-                else
-                {
-                    GetTypeDocumentation(e.FullPath)?.OnCreate(source, e);
+                        renameElement.Name = newName;
+                        renameElement.Path = newPath;
+                        renameElement.Sections.ForEachImmediate(line => line.RenamePath(line, oldPath, newPath));
+                    });
                 }
             }
-
-            void OnRename(object source, RenamedEventArgs e)
+            else
             {
-                if (System.IO.Path.GetDirectoryName(e.OldFullPath) == PathEditableFiles)
-                {
-                    if (Directory.Exists(e.FullPath))
-                    {
-                        string oldName = System.IO.Path.GetFileName(e.OldName);
-                        string newName = System.IO.Path.GetFileName(e.Name);
-                        string newPath = e.FullPath;
-                        TypeDocumentation renameElement = TypeDocumentations.Where(item => oldName == item.Name).FirstOrDefault();
-                        string oldPath = renameElement.Path;
-                        Invoke(() => 
-                        {
-                            renameElement.Name = newName;
-                            renameElement.Path = newPath;
-                            renameElement.Sections.ForEachImmediate(line => line.RenamePath(line, oldPath, newPath));
-                        });
-                    }
-                }
-                else
-                {
-                    GetTypeDocumentation(e.FullPath)?.OnRename(source, e);
-                }
+                GetTypeDocumentation(e.FullPath)?.OnRename(source, e);
             }
         }
         public void Dispose()

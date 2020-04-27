@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ObjectsProject", "..\Object
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Saharok", "..\Saharok\Saharok.csproj", "{19402387-02E4-4BC6-BA3A-F23BFB050BFB}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ObjectsProjectServer", "ObjectsProjectServer\ObjectsProjectServer.csproj", "{FBDE7FF9-73D4-49AB-A0C5-267396A62351}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{19402387-02E4-4BC6-BA3A-F23BFB050BFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{19402387-02E4-4BC6-BA3A-F23BFB050BFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{19402387-02E4-4BC6-BA3A-F23BFB050BFB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FBDE7FF9-73D4-49AB-A0C5-267396A62351}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FBDE7FF9-73D4-49AB-A0C5-267396A62351}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FBDE7FF9-73D4-49AB-A0C5-267396A62351}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FBDE7FF9-73D4-49AB-A0C5-267396A62351}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
