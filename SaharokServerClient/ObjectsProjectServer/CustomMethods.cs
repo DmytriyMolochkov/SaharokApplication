@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace Saharok.Model
+namespace ObjectsProjectServer
 {
     public static class CustomMethods
     {
@@ -25,6 +22,5 @@ namespace Saharok.Model
             }
             return source;
         }
-
     }
 }

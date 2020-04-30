@@ -7,10 +7,14 @@ using System.Threading.Tasks;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using System.ComponentModel;
+using System.Runtime.Serialization;
+using System.Security.Permissions;
+using System.Reflection;
 
-namespace ObjectsProject
+namespace ObjectsProjectClient
 {
-    public class TypeDocumentation : INotifyPropertyChanged
+    [Serializable]
+    public class TypeDocumentation : INotifyPropertyChanged, ISerializable
     {
         private string name;
         public string Name
@@ -135,6 +139,19 @@ namespace ObjectsProject
         protected virtual void OnPropertyChanged(string propertyName = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        protected TypeDocumentation(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.GetValue(this, info);
+        }
+
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.AddValue(this, info);
         }
     }
 }

@@ -3,68 +3,39 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.Serialization;
+using System.Security.Permissions;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace ObjectsProjectServer
 {
-    public class Section
+    [Serializable]
+    public class Section : ISerializable
     {
-        public string Name { get; set; }
+        private string name;
+        public string Name
+        {
+            get => name;
+            set => name = value;
+        }
         public string Path { get; set; }
         public TypeDocumentation TypeDocumentation { get; set; }
         public ObservableCollection<FileSection> Files { get; set; }
 
-        //public Section(string path, string name, TypeDocumentation parent)
-        //{
-        //    Path = path;
-        //    Name = name;
-        //    TypeDocumentation = parent;
-        //    LoadFilesWithRetries();
-        //}
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        protected Section(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.GetValue(this, info);
+        }
 
-        
 
-        //protected async void LoadFilesWithRetries()
-        //{
-        //    int @try = 0;
-        //    do
-        //    {
-        //        try
-        //        {
-        //            LoadFiles();
-        //            return;
-        //        }
-        //        catch (System.IO.IOException e)
-        //        {
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.AddValue(this, info);
+        }
 
-        //            if (@try++ < 10)
-        //            {
-        //                if (@try > 1)
-        //                    await Task.Delay(500);
-        //            }
-        //            else
-        //            {
-        //                throw e;
-        //            }
-        //        }
-        //    } while (true);
-        //}
-
-        //protected void LoadFiles()
-        //{
-        //    Files = new ObservableCollection<FileSection>(Directory.EnumerateFiles(Path, "*", SearchOption.TopDirectoryOnly)
-        //        .Where(line => FileFilter(line)).Select(line => new FileSection(line, System.IO.Path.GetFileName(line), this)));
-        //}
-        //private bool FileFilter(string fileName)
-        //{
-        //    List<string> ignoredExtensions = new List<string> { ".bak", ".tmp", ".sс$", ".dwl", ".cd~" };
-        //    string extensionFile = System.IO.Path.GetExtension(fileName).ToLower();
-        //    bool result = ignoredExtensions.All(arg => arg != extensionFile) && File.GetAttributes(fileName) != FileAttributes.Hidden && !fileName.Contains("~$");
-        //    if (result)
-        //        return true;
-        //    else
-        //        return false;
-        //}
     }
 }

@@ -24,13 +24,15 @@ using System.Windows.Forms;
 using System.Threading;
 using System.IO.Compression;
 using System.ComponentModel;
-using ObjectsProject;
+using ObjectsProjectClient;
+using Saharok.Model.Client;
+using ObjectsToFormProjectClient;
 
 namespace Saharok.Model
 {
     public static class FormProject
     {
-        #region ExtensionMethods
+        
         public static IEnumerable<IEnumerable<T>> SplitIntoGroupsByTheResultOfDividing<T>(
             this IEnumerable<T> source,
             int count)
@@ -52,7 +54,6 @@ namespace Saharok.Model
             .Select(x => x.Select(y => y.Value).ToList())
             .ToList();
         }
-        #endregion
 
         private class Apps
         {
@@ -74,12 +75,10 @@ namespace Saharok.Model
                 }
             }
 
-            //public WordApp word = null;
             public ExcelApp excel = null;
             public List<WordApp> words = new List<WordApp>();
             public List<Kompas> kompases = new List<Kompas>();
 
-            #region AppsMethods
             public static void RunWord(ref WordApp word)
             {
                 if (word == null)
@@ -156,122 +155,131 @@ namespace Saharok.Model
 
             public static void QuitApps(ref Apps apps)
             {
-                //QuitWord(ref apps.word);
                 QuitWords(ref apps.words);
                 QuitExcel(ref apps.excel);
                 foreach (Kompas kompas in apps.kompases)
                 {
                     kompas.Quit();
                 }
-
             }
-            #endregion
         }
 
-        #region GetSectionToProject
-        public static List<SectionToProject> GetSectionsToProject(Project project, string nameDirectorySection, string nameDirectoryFile)
-        {
-            List<SectionToProject> Sections = new List<SectionToProject>();
-            project.TypeDocumentations.ForEachImmediate(typeDocumentation =>
-            {
-                typeDocumentation.Sections.ForEachImmediate(section =>
-                {
-                    Sections.Add(GetSectionToProject(section, nameDirectorySection, nameDirectoryFile));
-                });
-            });
-            return Sections;
-        }
-        public static List<SectionToProject> GetSectionsToProject(TypeDocumentation typeDocumentation, string nameDirectorySection, string nameDirectoryFile)
-        {
-            List<SectionToProject> Sections = new List<SectionToProject>();
-            Project project = typeDocumentation.Project;
-            typeDocumentation.Sections.ForEachImmediate(section =>
-            {
-                Sections.Add(GetSectionToProject(section, nameDirectorySection, nameDirectoryFile));
-            });
-            return Sections;
-        }
-        public static SectionToProject GetSectionToProject(ObjectsProject.Section section, string nameDirectorySection, string nameDirectoryFile)
-        {
-            TypeDocumentation typeDocumentation = section.TypeDocumentation;
-            Project project = typeDocumentation.Project;
-            Dictionary<string, MethodFormFile> outputSectionPaths = new Dictionary<string, MethodFormFile>();
-            outputSectionPaths.Add(
-                Path.Combine(Path.Combine(project.Path, nameDirectorySection, "На отправку", typeDocumentation.Name),
-                    String.Join(" ", new string[]
-                    {
-                        section.Name.Split(' ')[0], project.CodeProject + "-" + String.Join(" ", section.Name.Split(' ').Skip(1)), project.Name + ".pdf"
-                    })),
-                MethodFormFile.PDF);
 
-            outputSectionPaths.Add(
-                Path.Combine(Path.Combine(project.Path, nameDirectorySection, "На сервер", typeDocumentation.Name),
-                    String.Join(" ", new string[]
-                    {
-                        section.Name.Split(' ')[0], project.CodeProject + "-" + String.Join(" ", section.Name.Split(' ').Skip(1)), project.Name + ".pdf"
-                    })),
-                MethodFormFile.PDF);
+        //public static List<SectionToProject> GetSectionsToProject(Project project, string nameDirectorySection, string nameDirectoryFile)
+        //{
+        //    List<SectionToProject> Sections = new List<SectionToProject>();
+        //    project.TypeDocumentations.ForEachImmediate(typeDocumentation =>
+        //    {
+        //        typeDocumentation.Sections.ForEachImmediate(section =>
+        //        {
+        //            Sections.Add(GetSectionToProject(section, nameDirectorySection, nameDirectoryFile));
+        //        });
+        //    });
+        //    return Sections;
+        //}
+        //public static List<SectionToProject> GetSectionsToProject(TypeDocumentation typeDocumentation, string nameDirectorySection, string nameDirectoryFile)
+        //{
+        //    List<SectionToProject> Sections = new List<SectionToProject>();
+        //    Project project = typeDocumentation.Project;
+        //    typeDocumentation.Sections.ForEachImmediate(section =>
+        //    {
+        //        Sections.Add(GetSectionToProject(section, nameDirectorySection, nameDirectoryFile));
+        //    });
+        //    return Sections;
+        //}
+        //public static SectionToProject GetSectionToProject(ObjectsProject.Section section, string nameDirectorySection, string nameDirectoryFile)
+        //{
+        //    TypeDocumentation typeDocumentation = section.TypeDocumentation;
+        //    Project project = typeDocumentation.Project;
+        //    Dictionary<string, MethodFormFile> outputSectionPaths = new Dictionary<string, MethodFormFile>();
+        //    outputSectionPaths.Add(
+        //        Path.Combine(Path.Combine(project.Path, nameDirectorySection, "На отправку", typeDocumentation.Name),
+        //            String.Join(" ", new string[]
+        //            {
+        //                section.Name.Split(' ')[0], project.CodeProject + "-" + String.Join(" ", section.Name.Split(' ').Skip(1)), project.Name + ".pdf"
+        //            })),
+        //        MethodFormFile.PDF);
 
-            outputSectionPaths.Add(
-                Path.Combine(Path.Combine(project.Path, nameDirectorySection, "На сервер", typeDocumentation.Name),
-                    String.Join(" ", new string[]
-                    {
-                        section.Name.Split(' ')[0], project.CodeProject + "-" + String.Join(" ", section.Name.Split(' ').Skip(1)), project.Name + ".zip"
-                    })),
-                MethodFormFile.ZIP);
+        //    outputSectionPaths.Add(
+        //        Path.Combine(Path.Combine(project.Path, nameDirectorySection, "На сервер", typeDocumentation.Name),
+        //            String.Join(" ", new string[]
+        //            {
+        //                section.Name.Split(' ')[0], project.CodeProject + "-" + String.Join(" ", section.Name.Split(' ').Skip(1)), project.Name + ".pdf"
+        //            })),
+        //        MethodFormFile.PDF);
 
-            List<FileToProject> filesToPDF = new List<FileToProject>();
-            section.Files.ForEachImmediate(file =>
-            {
-                string outputFileName = Path.ChangeExtension(Path.Combine(project.Path, nameDirectoryFile, typeDocumentation.Name, section.Name, file.Name), "pdf");
-                filesToPDF.Add(new FileToProject(file.Path, file.Name, outputFileName, file.MethodPDFFile));
-            });
-            List<FileToProject> sortedfilesToPDF = filesToPDF.OrderBy(item => item.OutputFileName).ToList();
-            return new SectionToProject(section.Path, outputSectionPaths, sortedfilesToPDF);
-        }
-        #endregion
+        //    outputSectionPaths.Add(
+        //        Path.Combine(Path.Combine(project.Path, nameDirectorySection, "На сервер", typeDocumentation.Name),
+        //            String.Join(" ", new string[]
+        //            {
+        //                section.Name.Split(' ')[0], project.CodeProject + "-" + String.Join(" ", section.Name.Split(' ').Skip(1)), project.Name + ".zip"
+        //            })),
+        //        MethodFormFile.ZIP);
 
-        public static List<FileToProject> GetFilesToPDFToPages(FileSection file)
-        {
-            string nameDirectoryFile = "PDF постранично";
-            ObjectsProject.Section section = file.Section;
-            TypeDocumentation typeDocumentation = section.TypeDocumentation;
-            Project project = typeDocumentation.Project;
-            List<FileToProject> filesToPDF = new List<FileToProject>();
-            string outputFileName = Path.ChangeExtension(Path.Combine(project.Path, nameDirectoryFile, typeDocumentation.Name, section.Name, file.Name), "pdf");
-            filesToPDF.Add(new FileToProject(file.Path, file.Name, outputFileName, file.MethodPDFFile));
-            return filesToPDF;
-        }
+        //    List<FileToProject> filesToPDF = new List<FileToProject>();
+        //    section.Files.ForEachImmediate(file =>
+        //    {
+        //        string outputFileName = Path.ChangeExtension(Path.Combine(project.Path, nameDirectoryFile, typeDocumentation.Name, section.Name, file.Name), "pdf");
+        //        filesToPDF.Add(new FileToProject(file.Path, file.Name, outputFileName, file.MethodPDFFile));
+        //    });
+        //    List<FileToProject> sortedfilesToPDF = filesToPDF.OrderBy(item => item.OutputFileName).ToList();
+        //    return new SectionToProject(section.Path, outputSectionPaths, sortedfilesToPDF);
+        //}
 
-        #region CreateProject
+        //public static List<FileToProject> GetFilesToPDFToPages(FileSection file)
+        //{
+        //    string nameDirectoryFile = "PDF постранично";
+        //    ObjectsProject.Section section = file.Section;
+        //    TypeDocumentation typeDocumentation = section.TypeDocumentation;
+        //    Project project = typeDocumentation.Project;
+        //    List<FileToProject> filesToPDF = new List<FileToProject>();
+        //    string outputFileName = Path.ChangeExtension(Path.Combine(project.Path, nameDirectoryFile, typeDocumentation.Name, section.Name, file.Name), "pdf");
+        //    filesToPDF.Add(new FileToProject(file.Path, file.Name, outputFileName, file.MethodPDFFile));
+        //    return filesToPDF;
+        //}
+
         public static void CreateProject(Project project)
         {
-
-            List<SectionToProject> sectionsToProject = GetSectionsToProject(project, "Готовый проект", "PDF постранично");
-            FilesToPDFSort filesToPDFSort = new FilesToPDFSort(sectionsToProject);
-            DoPDFFileUsingApps(filesToPDFSort);
-            CheckSectionIsDone(sectionsToProject);
+            ClientObject.SendMessage(project);
+            //ClientObject.SendMessage(project);
+            //List<SectionToProject> sectionsToProject = GetSectionsToProject(project, "Готовый проект", "PDF постранично");
+            //FilesToPDFSort filesToPDFSort = new FilesToPDFSort(sectionsToProject);
+            //List<SectionToProject> sectionsToProject=null;
+            //FilesToPDFSort filesToPDFSort = null;
+            //FilesToPDFSort.CheckFilesToPDFSortToErrors(filesToPDFSort);
+            //DoPDFFileUsingApps(filesToPDFSort);
+            //CheckSectionIsDone(sectionsToProject);
         }
         public static void CreateProject(TypeDocumentation typeDocumentation)
         {
-            List<SectionToProject> sectionsToProject = GetSectionsToProject(typeDocumentation, "Готовый проект", "PDF постранично");
-            FilesToPDFSort filesToPDFSort = new FilesToPDFSort(sectionsToProject);
-            DoPDFFileUsingApps(filesToPDFSort);
-            CheckSectionIsDone(sectionsToProject);
+            ClientObject.SendMessage(typeDocumentation);
+            //List<SectionToProject> sectionsToProject = GetSectionsToProject(typeDocumentation, "Готовый проект", "PDF постранично");
+            //FilesToPDFSort filesToPDFSort = new FilesToPDFSort(sectionsToProject);
+            //List<SectionToProject> sectionsToProject = null;
+            //FilesToPDFSort filesToPDFSort = null;
+            //FilesToPDFSort.CheckFilesToPDFSortToErrors(filesToPDFSort);
+            //DoPDFFileUsingApps(filesToPDFSort);
+            //CheckSectionIsDone(sectionsToProject);
         }
-        public static void CreateProject(ObjectsProject.Section section)
+        public static void CreateProject(ObjectsProjectClient.Section section)
         {
-            List<SectionToProject> sectionsToProject = new List<SectionToProject> { GetSectionToProject(section, "Готовый проект", "PDF постранично") };
-            FilesToPDFSort filesToPDFSort = new FilesToPDFSort(sectionsToProject);
-            DoPDFFileUsingApps(filesToPDFSort);
-            CheckSectionIsDone(sectionsToProject);
+            ClientObject.SendMessage(section);
+            //List<SectionToProject> sectionsToProject = new List<SectionToProject> { GetSectionToProject(section, "Готовый проект", "PDF постранично") };
+            //FilesToPDFSort filesToPDFSort = new FilesToPDFSort(sectionsToProject);
+            //List<SectionToProject> sectionsToProject = null;
+            //FilesToPDFSort filesToPDFSort = null;
+            //FilesToPDFSort.CheckFilesToPDFSortToErrors(filesToPDFSort);
+            //DoPDFFileUsingApps(filesToPDFSort);
+            //CheckSectionIsDone(sectionsToProject);
         }
         public static void CreatFileToPDFToPages(FileSection file)
         {
-            FilesToPDFSort filesToPDFSort = new FilesToPDFSort(GetFilesToPDFToPages(file));
-            DoPDFFileUsingApps(filesToPDFSort);
+            ClientObject.SendMessage(file);
+            //FilesToPDFSort filesToPDFSort = new FilesToPDFSort(GetFilesToPDFToPages(file));
+            //FilesToPDFSort filesToPDFSort = null;
+            //FilesToPDFSort.CheckFilesToPDFSortToErrors(filesToPDFSort);
+            //DoPDFFileUsingApps(filesToPDFSort);
         }
-        #endregion
 
         public static bool CheckSectionReadiness(FileToProject fileToProject)
         {
@@ -441,7 +449,6 @@ namespace Saharok.Model
             }
         }
 
-        #region PDFMethodsUsingApps
         private static void DoPDFfromPDF(string fileName, string outputFileName)
         {
             try
@@ -537,133 +544,9 @@ namespace Saharok.Model
 
         private static void DoPDFfromAutoCAD(string fileName, string outputFileName)
         {
-            #region trash
-            //AcadApplication acAppComObj = new AcadApplication();
-            //acAppComObj.Visible = true;
-            //var t = Type.Missing;
-            //AcadDocument Doc = acAppComObj.Documents.Open(fileName, false, t);
-            //await System.Threading.Tasks.Task.Delay(4000);
-
-
-            //AcadLayout Layout;
-            //if (Doc.ActiveSpace == 0)
-            //    Layout = Doc.PaperSpace.Layout;
-            //else
-            //    Layout = Doc.ModelSpace.Layout;
-            //Doc.SendCommand("EXPORTPDF ");
-            //AcadLayout Layout = Doc.Database.Layouts.Item(2);
-            ////Layout.Delete();
-            //string LayoutName = Layout.Name;
-
-            //AcadSelectionSet ss = Doc.SelectionSets.Add("MySet");
-            //short[] ftype = new short[1];
-            //object[] fdata = new object[1];
-            //ftype[0] = 0; //0 = DXF for Object type
-            //fdata[0] = "*"; // we want all Object types
-            //ss.Select(AcSelect.acSelectionSetAll, null, null, ftype, fdata);
-            //ss.Delete();
-
-            //Int16[] hFilterType = new Int16[1];
-            //object[] hFilterData = new object[1];
-            //hFilterType[0] = 0;
-            //hFilterData[0] = "*";
-            //acAppComObj.ZoomExtents();
-            //string exportFile = Path.GetDirectoryName(fileName);
-            //AcadSelectionSet sset = default(AcadSelectionSet);
-            //sset = Doc.SelectionSets.Add("TEST");
-            //sset.Clear();
-            //sset.Select(AcSele​ct.acSelectionSetAll, Type.Missing, Type.Missing, Type.Missing, Type.Missing);
-            //sset.Highlight(true);
-            //Doc.Export(exportFile, "PDF", sset);
-            //Doc.Export(Path.GetFileNameWithoutExtension(fileName), "pdf", sset);
-
-
-            //    AcadPlotConfigurations PtConfigs;
-            //    AcadPlotConfiguration PlotConfig;
-            //AcadPlot PtObj;
-            //Object BackPlot;
-
-            //    //Create a new plot configutrarion with all needed parameters
-            //    PtObj = Doc.Plot;
-            //    PtConfigs = Doc.PlotConfigurations;
-            //    //Add a new plot configuration
-            //    PtConfigs.Add("PDF", false);
-            //    //The plot config you created become active
-            //    PlotConfig = PtConfigs.Item("PDF");
-            //    //Use this method to set the scale
-            //    PlotConfig.StandardScale = AcPlotScale.acScaleToFit;
-            //    //Updates the plot
-            //    PlotConfig.RefreshPlotDeviceInfo();
-            //    //Here you specify the pc3 file you want to use
-            //    PlotConfig.ConfigName = "DWG To PDF.pc3";
-            //    //You can select the plot style table here
-            //    //PlotConfig.StyleSheet = "acad.ctb";
-            //    //Specifies whether or not to plot using the plot styles
-            //    PlotConfig.PlotWithPlotStyles = false;
-
-            //    ////If you are going to create pdf files in a batch mode,
-            //    //I would recommend to turn off the BACKGROUNDPLOT system variable,
-            //    //so autocad will not continue to do anything until finishes
-            //    //the pdf creation
-            //    BackPlot = Doc.GetVariable("BACKGROUNDPLOT");
-            //    Doc.SetVariable("BACKGROUNDPLOT", 0);
-            //    //Updates the plot
-            //    PlotConfig.RefreshPlotDeviceInfo();
-            ////Acad.ActiveDocument.ActiveLayout.CopyFrom(plotconfig);
-            //    //Now you can use the PlotTofile method
-            //    if (PtObj.PlotToFile(Path.GetDirectoryName(fileName)+Path.GetFileName(fileName )+ ".pdf", PlotConfig.ConfigName))
-            //    {
-            //        Doc.Utility.Prompt("PDF Was Created");
-            //    }
-            //    else
-            //    {
-            //        Doc.Utility.Prompt("PDF Creation Unsuccessful");
-            //    }
-
-            //    //If you wish you can delete th plot configuration you created
-            //    //programmatically, and set the 'BACKGROUNDPLOT' system variable
-            //    //to its original status.
-            //    PtConfigs.Item("PDF").Delete();
-            //    PlotConfig = null;
-            //    Doc.SetVariable("BACKGROUNDPLOT", BackPlot);
-            //Autodesk.AutoCAD.ApplicationServices.Document acDoc = Autodesk.AutoCAD.ApplicationServices.Application.DocumentManager.MdiActiveDocument;
-            //Database acCurDb = acDoc.Database;
-
-
-            //using (Transaction acTrans = acCurDb.TransactionManager.StartTransaction())
-            //{
-            //    // Reference the Layout Manager
-            //    LayoutManager acLayoutMgr = LayoutManager.Current;
-
-            //    // Create the new layout with default settings
-            //    ObjectId objID = acLayoutMgr.CreateLayout("newLayout");
-
-            //    // Open the layout
-            //    Layout acLayout = acTrans.GetObject(objID,
-            //                                        OpenMode.ForRead) as Layout;
-
-            //    // Set the layout current if it is not already
-            //    if (acLayout.TabSelected == false)
-            //    {
-            //        acLayoutMgr.CurrentLayout = acLayout.LayoutName;
-            //    }
-
-            //    // Output some information related to the layout object
-            //    acDoc.Editor.WriteMessage("\nTab Order: " + acLayout.TabOrder +
-            //                              "\nTab Selected: " + acLayout.TabSelected +
-            //                              "\nBlock Table Record ID: " +
-            //                              acLayout.BlockTableRecordId.ToString());
-
-            //    // Save the changes made
-            //    acTrans.Commit();
-            //    Layout[] layouts = new Layout[] { acLayout };
-            //    MultiSheetsPdf print = new MultiSheetsPdf(outputFileName, layouts);
-            //}
-            #endregion
+            //тут могла быть ваша реклама
         }
-        #endregion
 
-        #region ProcessingMethodsPDFFile
         public static void CombinePDF(List<string> pathSourceFile, string pathPDFFile)
         {
             using (var stream = new FileStream(pathPDFFile, FileMode.Create))
@@ -687,12 +570,11 @@ namespace Saharok.Model
                 }
             }
         }
-        #endregion
 
         public static void FormSection(SectionToProject sectionToProject)
         {
             List<System.Threading.Tasks.Task> tasks = new List<System.Threading.Tasks.Task>();
-            foreach (KeyValuePair<string, MethodFormFile> outputSectionPath in sectionToProject.OutputSectionPaths)
+            foreach (var outputSectionPath in sectionToProject.OutputSectionPaths)
             {
                 switch (outputSectionPath.Value)
                 {
@@ -769,7 +651,7 @@ namespace Saharok.Model
                         }
                     default:
                         {
-                            throw new Exception();
+                            throw new Exception($"Неизвестный метод формирования секции: {outputSectionPath.Value}");
                         }
                 }
             }
@@ -783,157 +665,4 @@ namespace Saharok.Model
         private static object saveChanges = WdSaveOptions.wdDoNotSaveChanges;
         #endregion
     }
-
-    public class SectionToProject
-    {
-        public string Path;
-        public Dictionary<string, MethodFormFile> OutputSectionPaths;
-        public List<FileToProject> FilesToPDF;
-        public bool IsDone;
-        public SectionToProject(string SectionPath, Dictionary<string, MethodFormFile> outputSectionPaths, List<FileToProject> filesToPDF)
-        {
-            Path = SectionPath;
-            OutputSectionPaths = outputSectionPaths;
-            filesToPDF.ForEach(file => file.SectionToProject = this);
-            IsDone = false;
-            FilesToPDF = filesToPDF;
-        }
-    }
-
-    #region FilesToPDF
-    public class FileToProject
-    {
-        public string Path;
-        public string Name;
-        public string OutputFileName;
-        public bool IsDone;
-        public MethodPDFFile MethodPDFFile;
-        public SectionToProject SectionToProject;
-        public FileToProject(string filePath, string name, string outputFileName, MethodPDFFile methodPDFFile)
-        {
-            Path = filePath;
-            Name = name;
-            OutputFileName = outputFileName;
-            IsDone = false;
-            MethodPDFFile = methodPDFFile;
-        }
-    }
-    public static class InfoOfProcess
-    {
-        private static int totalFormsFiles;
-        public static int TotalFormsFiles
-        {
-            get => totalFormsFiles;
-            set
-            {
-                totalFormsFiles = value;
-                OnPropertyChanged(nameof(TotalFormsFiles));
-            }
-        }
-
-        private static int totalFormsSections;
-        public static int TotalFormsSections
-        {
-            get => totalFormsSections;
-            set
-            {
-                totalFormsSections = value;
-                OnPropertyChanged(nameof(TotalFormsSections));
-            }
-        }
-
-        private static int completeFormsFiles;
-        public static int CompleteFormsFiles
-        {
-            get => completeFormsFiles;
-            set
-            {
-                completeFormsFiles = value;
-                OnPropertyChanged(nameof(CompleteFormsFiles));
-            }
-        }
-
-        private static int completeFormsSections;
-        public static int CompleteFormsSections
-        {
-            get => completeFormsSections;
-            set
-            {
-                completeFormsSections = value;
-                OnPropertyChanged(nameof(CompleteFormsSections));
-            }
-        }
-
-        public static event PropertyChangedEventHandler PropertyChanged;
-
-        private static void OnPropertyChanged(string propertyName = "")
-        {
-            PropertyChanged?.Invoke(null, new PropertyChangedEventArgs(propertyName));
-        }
-    }
-    public class FilesToPDFSort
-    {
-        public List<FileToProject> FilesToPDFfromPDF = new List<FileToProject>();
-        public List<FileToProject> FilesToPDFfromWord = new List<FileToProject>();
-        public List<FileToProject> FilesToPDFfromExcel = new List<FileToProject>();
-        public List<FileToProject> FilesToPDFfromKompas = new List<FileToProject>();
-        public List<FileToProject> FilesToPDFfromAutoCad = new List<FileToProject>();
-
-        private static void CheckFilesToPDFSortToErrors(List<SectionToProject> sectionsToProject)
-        {
-            List<System.Threading.Tasks.Task> tasks = new List<System.Threading.Tasks.Task>();
-
-            var ErrorFiles = sectionsToProject.SelectMany(section => section.FilesToPDF)
-                .Where(file => file.MethodPDFFile == MethodPDFFile.NoPDFMethod)
-                .Select(file => file.Path);
-
-            if (ErrorFiles.Count() > 0)
-                tasks.Add(System.Threading.Tasks.Task.Run(() =>
-                       throw new Exception("Недопустимое расширение у файлов: "
-                           + Environment.NewLine + "      "
-                           + String.Join(Environment.NewLine + "      ", ErrorFiles))));
-
-            ErrorFiles = sectionsToProject.SelectMany(section => section.FilesToPDF)
-                .Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF)
-                .Where(file => file.MethodPDFFile != MethodPDFFile.AutoCad)
-                .GroupBy(file => file.OutputFileName).Where(group => group.ToList().Count > 1)
-                .SelectMany(group => group).ToList()
-                .Select(file => file.Path);
-            if (ErrorFiles.Count() > 0)
-                tasks.Add(System.Threading.Tasks.Task.Run(() =>
-                       throw new Exception("Имя PDF файлов будет одинаковым у следующих файлов: "
-                           + Environment.NewLine + "      "
-                           + String.Join(Environment.NewLine + "      ", ErrorFiles))));
-
-            System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
-        }
-
-        public FilesToPDFSort(List<SectionToProject> sectionsToProject)
-        {
-            InfoOfProcess.TotalFormsFiles = sectionsToProject.SelectMany(section => section.FilesToPDF).Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF).ToList().Count();
-            InfoOfProcess.TotalFormsSections = sectionsToProject.Count();
-
-            CheckFilesToPDFSortToErrors(sectionsToProject);
-
-            FilesToPDFfromPDF = sectionsToProject.SelectMany(section => section.FilesToPDF).Where(file => file.MethodPDFFile == MethodPDFFile.PDF).ToList();
-            FilesToPDFfromWord = sectionsToProject.SelectMany(section => section.FilesToPDF).Where(file => file.MethodPDFFile == MethodPDFFile.Word).ToList();
-            FilesToPDFfromExcel = sectionsToProject.SelectMany(section => section.FilesToPDF).Where(file => file.MethodPDFFile == MethodPDFFile.Excel).ToList();
-            FilesToPDFfromKompas = sectionsToProject.SelectMany(section => section.FilesToPDF).Where(file => file.MethodPDFFile == MethodPDFFile.Kompas).ToList();
-            FilesToPDFfromAutoCad = sectionsToProject.SelectMany(section => section.FilesToPDF).Where(file => file.MethodPDFFile == MethodPDFFile.AutoCad).ToList();
-        }
-        public FilesToPDFSort(List<FileToProject> filesToPDF)
-        {
-            InfoOfProcess.TotalFormsFiles = filesToPDF.Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF).Count();
-
-            filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.NoPDFMethod).ToList()
-                .ForEach(errorFile => throw new Exception("Недопустимое расширение у файла: " + errorFile.Path));
-
-            FilesToPDFfromPDF = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.PDF).ToList();
-            FilesToPDFfromWord = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.Word).ToList();
-            FilesToPDFfromExcel = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.Excel).ToList();
-            FilesToPDFfromKompas = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.Kompas).ToList();
-            FilesToPDFfromAutoCad = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.AutoCad).ToList();
-        }
-    }
-    #endregion
 }

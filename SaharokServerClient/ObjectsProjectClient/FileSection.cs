@@ -6,10 +6,14 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.ComponentModel;
+using System.Runtime.Serialization;
+using System.Security.Permissions;
+using System.Reflection;
 
-namespace ObjectsProject
+namespace ObjectsProjectClient
 {
-    public class FileSection : INotifyPropertyChanged
+    [Serializable]
+    public class FileSection : INotifyPropertyChanged, ISerializable
     {
         private string name;
         public string Name
@@ -22,8 +26,11 @@ namespace ObjectsProject
             }
         }
         public string Path { get; set; }
+
+
         public Section Section { get; set; }
         public MethodPDFFile MethodPDFFile { get; set; }
+
         public FileSection(string path, string name, Section parent)
         {
             Path = path;
@@ -37,11 +44,24 @@ namespace ObjectsProject
             element.Path = element.Path.Replace(oldPath, newPath);
         }
 
-
         public event PropertyChangedEventHandler PropertyChanged;
         protected virtual void OnPropertyChanged(string propertyName = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        protected FileSection(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.GetValue(this, info);
+        }
+
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.AddValue(this, info);
         }
     }
 }

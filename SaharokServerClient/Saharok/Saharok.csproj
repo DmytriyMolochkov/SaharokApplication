@@ -140,17 +140,12 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Model\Client\ClientObject.cs" />
     <Compile Include="Model\ConnectKompas.cs" />
     <Compile Include="Model\CreateProjectClass.cs" />
-    <Compile Include="Model\CustomMethods.cs" />
     <Compile Include="Model\DirectoryMethods.cs" />
     <Compile Include="Model\FileAssociation.cs" />
-    <Compile Include="Model\ObjectsProject\FileSection.cs" />
-    <Compile Include="Model\ObjectsProject\Project.cs" />
-    <Compile Include="Model\ObjectsProject\Section.cs" />
-    <Compile Include="Model\ObjectsProject\TypeDocumentation.cs" />
     <Compile Include="Model\FormProject.cs" />
-    <Compile Include="Model\TypeFile.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -262,9 +257,13 @@
     <Resource Include="mainicon.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ObjectsProject\ObjectsProject.csproj">
+    <ProjectReference Include="..\ObjectsProjectClient\ObjectsProjectClient.csproj">
       <Project>{54fb743c-4894-48b5-8c45-6bd3c95dfe60}</Project>
-      <Name>ObjectsProject</Name>
+      <Name>ObjectsProjectClient</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ObjectsToFormProjectClient\ObjectsToFormProjectClient.csproj">
+      <Project>{960d92ae-e666-4a97-880b-0d1fb8ca21e2}</Project>
+      <Name>ObjectsToFormProjectClient</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

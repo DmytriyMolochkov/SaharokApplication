@@ -1,22 +1,37 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Runtime.Serialization;
+using System.Security.Permissions;
 using System.Text;
 
 namespace ObjectsProjectServer
 {
-    public class FileSection
+    [Serializable]
+    public class FileSection : ISerializable
     {
         private string name;
-        public string Name { get; set; }
+        public string Name
+        {
+            get => name;
+            set{ name = value; }
+        }
         public string Path { get; set; }
         public Section Section { get; set; }
         public MethodPDFFile MethodPDFFile { get; set; }
-        //public FileSection(string path, string name, Section parent)
-        //{
-        //    Path = path;
-        //    Name = name;
-        //    Section = parent;
-        //    MethodPDFFile = TypeFile.ChooseMethodPDFFile(this);
-        //}
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        protected FileSection(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.GetValue(this, info);
+        }
+
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.AddValue(this, info);
+        }
     }
 }

@@ -7,10 +7,14 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.ComponentModel;
+using System.Runtime.Serialization;
+using System.Security.Permissions;
+using System.Reflection;
 
-namespace ObjectsProject
+namespace ObjectsProjectClient
 {
-    public class Section : INotifyPropertyChanged
+    [Serializable]
+    public class Section : INotifyPropertyChanged, ISerializable
     {
         private string name;
         public string Name
@@ -25,6 +29,7 @@ namespace ObjectsProject
         public string Path { get; set; }
         public TypeDocumentation TypeDocumentation { get; set; }
         public ObservableCollection<FileSection> Files { get; set; }
+        //public List<FileSection> Files { get; set; }
 
         public Section(string path, string name, TypeDocumentation parent)
         {
@@ -131,6 +136,8 @@ namespace ObjectsProject
         {
             Files = new ObservableCollection<FileSection>(Directory.EnumerateFiles(Path, "*", SearchOption.TopDirectoryOnly)
                 .Where(line => FileFilter(line)).Select(line => new FileSection(line, System.IO.Path.GetFileName(line), this)));
+            //Files = new List<FileSection>(Directory.EnumerateFiles(Path, "*", SearchOption.TopDirectoryOnly)
+            //    .Where(line => FileFilter(line)).Select(line => new FileSection(line, System.IO.Path.GetFileName(line), this)));
         }
 
         public void RenamePath(Section element, string oldPath, string newPath)
@@ -155,6 +162,19 @@ namespace ObjectsProject
         protected virtual void OnPropertyChanged(string propertyName = "")
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        protected Section(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.GetValue(this, info);
+        }
+
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.AddValue(this, info);
         }
     }
 }

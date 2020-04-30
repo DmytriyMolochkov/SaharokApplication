@@ -5,8 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ObjectsProject
+namespace ObjectsProjectClient
 {
+    [Serializable]
     public enum MethodPDFFile
     {
         Kompas = 0,
@@ -18,6 +19,12 @@ namespace ObjectsProject
         NoPDFMethod = 11
     }
 
+    [Serializable]
+    public enum MethodFormFile
+    {
+        PDF = 1,
+        ZIP = 2
+    }
 
     public static class TypeFile
     {

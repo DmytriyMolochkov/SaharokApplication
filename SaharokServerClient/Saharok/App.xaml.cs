@@ -10,6 +10,7 @@ using Saharok.ViewModel;
 using Saharok.Model;
 using Microsoft.Build.Tasks.Deployment.ManifestUtilities;
 using System.IO;
+using Saharok.Model.Client;
 
 namespace Saharok
 {
@@ -35,6 +36,7 @@ namespace Saharok
             {
                 new MyFileAssociation();
             }
+            ClientObject.Connect();
         }
     }
 }

@@ -20,7 +20,8 @@ using System.Windows.Media.Imaging;
 using System.Drawing;
 using System.Globalization;
 using System.Collections.Concurrent;
-using ObjectsProject;
+using ObjectsProjectClient;
+using ObjectsToFormProjectClient;
 
 namespace Saharok.ViewModel
 {

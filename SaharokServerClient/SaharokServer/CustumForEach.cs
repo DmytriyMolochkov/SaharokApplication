@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
-namespace ObjectsProject
+namespace SaharokServer
 {
-    public static class CustomMethods
+    public static class CustomForEach
     {
         public static IEnumerable<T> ForEachChained<T>(this IEnumerable<T> source, Action<T> action)
         {
@@ -22,5 +23,6 @@ namespace ObjectsProject
             }
             return source;
         }
+
     }
 }

@@ -14,4 +14,10 @@ namespace ObjectsProjectServer
         DontPDF = 10,
         NoPDFMethod = 11
     }
+
+    public enum MethodFormFile
+    {
+        PDF = 1,
+        ZIP = 2
+    }
 }

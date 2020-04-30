@@ -3,39 +3,44 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.Serialization;
+using System.Security.Permissions;
 using System.Text;
 
 namespace ObjectsProjectServer
 {
-    public class Project
+    [Serializable]
+    public class Project : ISerializable
     {
         public string Title { get; set; }
         public string Path { get; set; }
         public string PathEditableFiles { get; set; }
-        public string Name { get; set; }
-        public string CodeProject { get; set; }
+        private string name;
+        public string Name
+        {
+            get => name;
+            set => name = value;
+        }
+        private string codeProject;
+        public string CodeProject
+        {
+            get => codeProject;
+            set => codeProject = value;
+        }
         public ObservableCollection<TypeDocumentation> TypeDocumentations { get; set; }
 
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        protected Project(SerializationInfo info, StreamingContext context)
+        {
+            info = FieldsSerializble.GetValue(this, info, new string[] { "watcher" });
+        }
 
 
-        //public Project(string path, string nameProject, string codeProject, Action<Action> action)
-        //{
-
-        //    if (!Directory.Exists(path))
-        //    {
-        //        throw new ArgumentException("Path is not directory");
-        //    }
-        //    Path = path;
-        //    PathEditableFiles = System.IO.Path.Combine(Path, "Редактируемые файлы");
-        //    Name = nameProject;
-        //    CodeProject = codeProject;
-        //    TypeDocumentations = new ObservableCollection<TypeDocumentation>(Directory.EnumerateDirectories(PathEditableFiles, "*", SearchOption.TopDirectoryOnly)
-        //        .Select(line => new TypeDocumentation(line, System.IO.Path.GetFileName(line), this)).ToList());
-        //}
-
-        //protected TypeDocumentation GetTypeDocumentation(string path)
-        //{
-        //    return TypeDocumentations.Where(item => path.StartsWith(item.Path)).FirstOrDefault();
-        //}
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            info = FieldsSerializble.AddValue(this, info, new string[] { "watcher" });
+        }
     }
 }
