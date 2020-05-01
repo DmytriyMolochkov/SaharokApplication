@@ -11,7 +11,7 @@ using System.Text;
 namespace ObjectsProjectServer
 {
     [Serializable]
-    public class Project : ISerializable, IFilesToProjectContainer
+    public class Project : ISerializable, IObjectsToProjectContainer
     {
         public string Title { get; set; }
         public string Path { get; set; }
@@ -41,6 +41,13 @@ namespace ObjectsProjectServer
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info = FieldsSerializble.AddValue(this, info, new string[] { "watcher" });
+        }
+
+        public FilesToPDFSort GetFilesToPDFSort()
+        {
+            List<SectionToProject> sectionsToProject = SectionToProject.GetSections(this);
+            FilesToPDFSort filesToPDFSort = new FilesToPDFSort(sectionsToProject);
+            return filesToPDFSort;
         }
     }
 }

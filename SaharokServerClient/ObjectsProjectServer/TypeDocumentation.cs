@@ -12,7 +12,7 @@ using System.Runtime.Serialization;
 namespace ObjectsProjectServer
 {
     [Serializable]
-    public class TypeDocumentation : ISerializable, IFilesToProjectContainer
+    public class TypeDocumentation : ISerializable, IObjectsToProjectContainer
     {
         private string name;
         public string Name
@@ -36,6 +36,12 @@ namespace ObjectsProjectServer
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
         {
             FieldsSerializble.AddValue(this, info);
+        }
+        public FilesToPDFSort GetFilesToPDFSort()
+        {
+            List<SectionToProject> sectionsToProject = SectionToProject.GetSections(this);
+            FilesToPDFSort filesToPDFSort = new FilesToPDFSort(sectionsToProject);
+            return filesToPDFSort;
         }
     }
 }

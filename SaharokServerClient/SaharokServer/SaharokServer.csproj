@@ -7,7 +7,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ObjectsProjectServer\ObjectsProjectServer.csproj" />
-    <ProjectReference Include="..\ObjectsToFormProjectServer\ObjectsToFormProjectServer.csproj" />
   </ItemGroup>
 
 </Project>

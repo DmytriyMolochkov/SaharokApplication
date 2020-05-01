@@ -1212,7 +1212,7 @@
                                                     <MenuItem 
                                                         Header="Сформировать PDF" 
                                                         CommandParameter="{Binding}" 
-                                                        Command="{Binding Path=PlacementTarget.Tag.DataContext.FormOnServerProject, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ContextMenu}}"
+                                                        Command="{Binding Path=PlacementTarget.Tag.DataContext.ClickFormProject, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ContextMenu}}"
                                                         />
                                                 </ContextMenu>
                                             </Grid.ContextMenu>

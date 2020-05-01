@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ObjectsToFormProjectServer
+namespace ObjectsProjectServer
 {
-    interface IObjectsToProjectContainer
+    public interface IObjectsToProjectContainer
     {
         public FilesToPDFSort GetFilesToPDFSort();
     }

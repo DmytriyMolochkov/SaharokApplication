@@ -33,5 +33,10 @@ namespace ObjectsProjectServer
         {
             FieldsSerializble.AddValue(this, info);
         }
+        public FilesToPDFSort GetFilesToPDFSort()
+        {
+            FilesToPDFSort filesToPDFSort = new FilesToPDFSort(FileToProject.GetFilesToPDFToPages(this));
+            return filesToPDFSort;
+        }
     }
 }

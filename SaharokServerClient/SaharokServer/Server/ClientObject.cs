@@ -4,7 +4,6 @@ using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using ObjectsProjectServer;
-using ObjectsToFormProjectServer;
 
 namespace SaharokServer.Server
 {
@@ -77,17 +76,25 @@ namespace SaharokServer.Server
             formatter.Binder = new Type1ToType2DeserializationBinder();
 
             //Project section = null;
-            object infoClient = null;
+            object data = null;
             Console.WriteLine("Начинаю десериализацию");
             do
             {
-                infoClient = /*(Project)*/formatter.Deserialize(Nstream);
+                data = /*(Project)*/formatter.Deserialize(Nstream);
             }
             while (Nstream.DataAvailable);
 
-            Type qwe = infoClient.GetType();
-            Console.WriteLine("Объект десериализован");
-            infoClient.ToString();
+            FilesToPDFSort filesToPDFSort = null;
+            if (data is IObjectsToProjectContainer)
+            {
+                filesToPDFSort = ((IObjectsToProjectContainer)data).GetFilesToPDFSort();
+            }
+            else
+            {
+                throw new Exception($"Полученный сервером класс не поддерживает интерфейс: {typeof(IObjectsToProjectContainer).Name}.");
+            }
+
+            filesToPDFSort.ToString();
         }
 
         // закрытие подключения

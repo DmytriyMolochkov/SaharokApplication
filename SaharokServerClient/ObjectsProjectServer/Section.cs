@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace ObjectsProjectServer
 {
     [Serializable]
-    public class Section : ISerializable, IFilesToProjectContainer
+    public class Section : ISerializable, IObjectsToProjectContainer
     {
         private string name;
         public string Name
@@ -36,6 +36,11 @@ namespace ObjectsProjectServer
         {
             FieldsSerializble.AddValue(this, info);
         }
-
+        public FilesToPDFSort GetFilesToPDFSort()
+        {
+            SectionToProject sectionToProject = SectionToProject.GetSection(this);
+            FilesToPDFSort filesToPDFSort = new FilesToPDFSort(sectionToProject);
+            return filesToPDFSort;
+        }
     }
 }

@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using ObjectsProjectServer;
 using System.IO;
 
-namespace ObjectsToFormProjectServer
+namespace ObjectsProjectServer
 {
     public class FileToProject
     {
