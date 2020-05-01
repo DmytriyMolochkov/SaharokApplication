@@ -47,6 +47,10 @@
     <Compile Include="Project.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Section.cs" />
+    <Compile Include="ToFormProject\FilesToPDFSort.cs" />
+    <Compile Include="ToFormProject\FileToProject.cs" />
+    <Compile Include="ToFormProject\InfoOfProcess.cs" />
+    <Compile Include="ToFormProject\SectionToProject.cs" />
     <Compile Include="TypeDocumentation.cs" />
     <Compile Include="TypeFile.cs" />
   </ItemGroup>

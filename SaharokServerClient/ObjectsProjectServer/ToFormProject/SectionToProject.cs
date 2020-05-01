@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using System.Security.Permissions;
+using System.Runtime.Serialization;
 
 namespace ObjectsProjectServer
 {
-    public class SectionToProject
+    public class SectionToProject : ISerializable
     {
         public string Path;
         public Dictionary<string, MethodFormFile> OutputSectionPaths;
@@ -82,7 +84,18 @@ namespace ObjectsProjectServer
             });
             List<FileToProject> sortedfilesToPDF = filesToPDF.OrderBy(item => item.OutputFileName).ToList();
             return new SectionToProject(section.Path, outputSectionsPaths, sortedfilesToPDF);
-            
+        }
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        protected SectionToProject(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.GetValue(this, info);
+        }
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.AddValue(this, info);
         }
     }
 }

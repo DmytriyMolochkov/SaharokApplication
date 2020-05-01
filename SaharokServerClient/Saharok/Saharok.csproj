@@ -261,10 +261,6 @@
       <Project>{54fb743c-4894-48b5-8c45-6bd3c95dfe60}</Project>
       <Name>ObjectsProjectClient</Name>
     </ProjectReference>
-    <ProjectReference Include="..\ObjectsToFormProjectClient\ObjectsToFormProjectClient.csproj">
-      <Project>{960d92ae-e666-4a97-880b-0d1fb8ca21e2}</Project>
-      <Name>ObjectsToFormProjectClient</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Security.Permissions;
 
 namespace ObjectsProjectServer
 {
-    public class FilesToPDFSort
+    public class FilesToPDFSort : ISerializable
     {
         public List<FileToProject> FilesToPDFfromPDF = new List<FileToProject>();
         public List<FileToProject> FilesToPDFfromWord = new List<FileToProject>();
@@ -44,6 +46,18 @@ namespace ObjectsProjectServer
             FilesToPDFfromExcel = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.Excel).ToList();
             FilesToPDFfromKompas = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.Kompas).ToList();
             FilesToPDFfromAutoCad = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.AutoCad).ToList();
+        }
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        protected FilesToPDFSort(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.GetValue(this, info);
+        }
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.AddValue(this, info);
         }
     }
 }

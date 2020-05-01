@@ -472,6 +472,7 @@ namespace Saharok.ViewModel
 
         public void UpDateFormedProgressBarText()
         {
+            InfoOfProcess.Get
             FormedFilesText = "Сконвертировано PDF файлов: " + InfoOfProcess.CompleteFormsFiles + " / " + InfoOfProcess.TotalFormsFiles;
             FormedSectionsText = "Сформировано разделов: " + InfoOfProcess.CompleteFormsSections + " / " + InfoOfProcess.TotalFormsSections;
         }

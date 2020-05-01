@@ -30,12 +30,12 @@ namespace ObjectsProjectServer
             FieldsSerializble.GetValue(this, info);
         }
 
-
         [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
         {
             FieldsSerializble.AddValue(this, info);
         }
+
         public FilesToPDFSort GetFilesToPDFSort()
         {
             SectionToProject sectionToProject = SectionToProject.GetSection(this);

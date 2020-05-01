@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
+using System.Security.Permissions;
+using System.Runtime.Serialization;
 
 namespace ObjectsProjectServer
 {
-    public class FileToProject
+    public class FileToProject : ISerializable
     {
         public string Path;
         public string Name;
@@ -34,6 +36,18 @@ namespace ObjectsProjectServer
                 System.IO.Path.Combine(project.Path, nameDirFileToPDFToPages, typeDocumentation.Name, section.Name, file.Name), "pdf");
             filesToPDF.Add(new FileToProject(file.Path, file.Name, outputFileName, file.MethodPDFFile));
             return filesToPDF;
+        }
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        protected FileToProject(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.GetValue(this, info);
+        }
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.AddValue(this, info);
         }
     }
 }
