@@ -69,16 +69,15 @@ namespace Saharok.ViewModel
                     threadFormOnServerProject.IsBackground = true;
                     threadFormOnServerProject.Start();
                 }
+                if (arg is FileSection)
+                {
+                    Thread threadFormOnServerProject = new Thread(() => FormOnServerProject(arg as FileSection));
+                    threadFormOnServerProject.Priority = ThreadPriority.Highest;
+                    threadFormOnServerProject.IsBackground = true;
+                    threadFormOnServerProject.Start();
+                }
             }
             , arg => FormOnServerProject_CanExecute());
-            ClickFormPDFToPagesFile = new Command(arg =>
-            {
-                Thread threadFormOnServerProject = new Thread(() => FormPDFToPagesFile(arg as FileSection));
-                threadFormOnServerProject.Priority = ThreadPriority.Highest;
-                threadFormOnServerProject.IsBackground = true;
-                threadFormOnServerProject.Start();
-            }
-            , arg => FormPDFToPagesFile_CanExecute());
         }
 
         #endregion
@@ -363,12 +362,12 @@ namespace Saharok.ViewModel
                 return true;
         }
 
-        private void FormPDFToPagesFile(FileSection fileSection)
+        private void FormOnServerProject(FileSection fileSection)
         {
             try
             {
                 OnProcessWorksEvent();
-                FormProject.CreatFileToPDFToPages(fileSection);
+                FormProject.CreateProject(fileSection);
                 OnProcessOffEvent();
             }
             catch (AggregateException ae)
@@ -381,13 +380,13 @@ namespace Saharok.ViewModel
             }
         }
 
-        private bool FormPDFToPagesFile_CanExecute()
-        {
-            if (MyProject == null || IsProcessed)
-                return false;
-            else
-                return true;
-        }
+        //private bool FormPDFToPagesFile_CanExecute()
+        //{
+        //    if (MyProject == null || IsProcessed)
+        //        return false;
+        //    else
+        //        return true;
+        //}
 
         #region Commands
 

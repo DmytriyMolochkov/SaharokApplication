@@ -12,7 +12,7 @@ using System.Runtime.Serialization;
 namespace ObjectsProjectServer
 {
     [Serializable]
-    public class TypeDocumentation : ISerializable
+    public class TypeDocumentation : ISerializable, IFilesToProjectContainer
     {
         private string name;
         public string Name

@@ -76,17 +76,18 @@ namespace SaharokServer.Server
             BinaryFormatter formatter = new BinaryFormatter();
             formatter.Binder = new Type1ToType2DeserializationBinder();
 
-            Project section = null;
+            //Project section = null;
+            object infoClient = null;
             Console.WriteLine("Начинаю десериализацию");
             do
             {
-                section = (Project)formatter.Deserialize(Nstream);
+                infoClient = /*(Project)*/formatter.Deserialize(Nstream);
             }
             while (Nstream.DataAvailable);
 
-
+            Type qwe = infoClient.GetType();
             Console.WriteLine("Объект десериализован");
-            section.ToString();
+            infoClient.ToString();
         }
 
         // закрытие подключения

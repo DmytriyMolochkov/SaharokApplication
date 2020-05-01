@@ -8,77 +8,6 @@ using ObjectsProjectClient;
 
 namespace ObjectsToFormProjectClient
 {
-    public class SectionToProject
-    {
-        public string Path;
-        public Dictionary<string, MethodFormFile> OutputSectionPaths;
-        public List<FileToProject> FilesToPDF;
-        public bool IsDone;
-    }
-
-    public class FileToProject
-    {
-        public string Path;
-        public string Name;
-        public string OutputFileName;
-        public bool IsDone;
-        public MethodPDFFile MethodPDFFile;
-        public SectionToProject SectionToProject;
-
-    }
-    public static class InfoOfProcess
-    {
-        private static int totalFormsFiles;
-        public static int TotalFormsFiles
-        {
-            get => totalFormsFiles;
-            set
-            {
-                totalFormsFiles = value;
-                OnPropertyChanged(nameof(TotalFormsFiles));
-            }
-        }
-
-        private static int totalFormsSections;
-        public static int TotalFormsSections
-        {
-            get => totalFormsSections;
-            set
-            {
-                totalFormsSections = value;
-                OnPropertyChanged(nameof(TotalFormsSections));
-            }
-        }
-
-        private static int completeFormsFiles;
-        public static int CompleteFormsFiles
-        {
-            get => completeFormsFiles;
-            set
-            {
-                completeFormsFiles = value;
-                OnPropertyChanged(nameof(CompleteFormsFiles));
-            }
-        }
-
-        private static int completeFormsSections;
-        public static int CompleteFormsSections
-        {
-            get => completeFormsSections;
-            set
-            {
-                completeFormsSections = value;
-                OnPropertyChanged(nameof(CompleteFormsSections));
-            }
-        }
-
-        public static event PropertyChangedEventHandler PropertyChanged;
-
-        private static void OnPropertyChanged(string propertyName = "")
-        {
-            PropertyChanged?.Invoke(null, new PropertyChangedEventArgs(propertyName));
-        }
-    }
     public class FilesToPDFSort
     {
         public List<FileToProject> FilesToPDFfromPDF = new List<FileToProject>();
@@ -103,9 +32,20 @@ namespace ObjectsToFormProjectClient
 
             if (ErrorFiles.Count() > 0)
                 tasks.Add(Task.Run(() =>
-                       throw new Exception("Недопустимое расширение у файлов: "
-                           + Environment.NewLine + "      "
-                           + String.Join(Environment.NewLine + "      ", ErrorFiles))));
+                {
+                    if (ErrorFiles.Count() == 1)
+                    {
+                        throw new Exception("Недопустимое расширение у файла: "
+                                                   + Environment.NewLine + "      "
+                                                   + String.Join(Environment.NewLine + "      ", ErrorFiles));
+                    }
+                    else
+                    {
+                        throw new Exception("Недопустимое расширение у файлов: "
+                                                   + Environment.NewLine + "      "
+                                                   + String.Join(Environment.NewLine + "      ", ErrorFiles));
+                    }
+                }));
 
             ErrorFiles = filesToProject.Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF)
                 .Where(file => file.MethodPDFFile != MethodPDFFile.AutoCad)

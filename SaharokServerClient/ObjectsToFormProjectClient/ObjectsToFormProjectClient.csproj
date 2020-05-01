@@ -7,8 +7,8 @@
     <ProjectGuid>{960D92AE-E666-4A97-880B-0D1FB8CA21E2}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ObjectsToFormProject</RootNamespace>
-    <AssemblyName>ObjectsToFormProject</AssemblyName>
+    <RootNamespace>ObjectsToFormProjectaClient</RootNamespace>
+    <AssemblyName>ObjectsToFormProjectClient</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <Deterministic>true</Deterministic>
@@ -41,8 +41,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Objects.cs" />
+    <Compile Include="FilesToPDFSort.cs" />
+    <Compile Include="FileToProject.cs" />
+    <Compile Include="InfoOfProcess.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SectionToProject.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ObjectsProjectClient\ObjectsProjectClient.csproj">

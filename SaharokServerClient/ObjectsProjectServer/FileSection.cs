@@ -9,7 +9,7 @@ using System.Text;
 namespace ObjectsProjectServer
 {
     [Serializable]
-    public class FileSection : ISerializable
+    public class FileSection : ISerializable, IObjectsToProjectContainer
     {
         private string name;
         public string Name

@@ -11,7 +11,7 @@ using System.Text;
 namespace ObjectsProjectServer
 {
     [Serializable]
-    public class Project : ISerializable
+    public class Project : ISerializable, IFilesToProjectContainer
     {
         public string Title { get; set; }
         public string Path { get; set; }

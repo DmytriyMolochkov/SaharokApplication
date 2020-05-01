@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 namespace ObjectsProjectServer
 {
     [Serializable]
-    public class Section : ISerializable
+    public class Section : ISerializable, IFilesToProjectContainer
     {
         private string name;
         public string Name
