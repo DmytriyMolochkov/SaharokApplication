@@ -4,7 +4,7 @@ using System.Text;
 
 namespace ObjectsProjectServer
 {
-    public interface IObjectsToProjectContainer
+    public interface IFilesToProjectContainer
     {
         public FilesToPDFSort GetFilesToPDFSort();
     }

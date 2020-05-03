@@ -3,9 +3,9 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Height="800"
-    Width="1100"
-    MinHeight="160"
-    MinWidth="260"
+    Width="650"
+    MinHeight="500"
+    MinWidth="650"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Style="{StaticResource VS2012WindowStyle}"
@@ -35,11 +35,11 @@
                 <ItemsPanelTemplate>
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" MinWidth="200"/>
-                            <ColumnDefinition Width="Auto" MinWidth="300"/>
-                            <ColumnDefinition Width="Auto" MinWidth="300"/>
+                            <ColumnDefinition Width="Auto" MinWidth="135"/>
+                            <ColumnDefinition Width="Auto" MinWidth="225"/>
+                            <ColumnDefinition Width="Auto" MinWidth="185"/>
                             <ColumnDefinition />
-                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto" MinWidth="23"/>
                         </Grid.ColumnDefinitions>
                     </Grid>
                 </ItemsPanelTemplate>
@@ -62,16 +62,17 @@
         </StatusBar>
         <Grid>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="30*"  />
-                <ColumnDefinition Width="5" />
+                <!--<ColumnDefinition Width="30*"  />
+                <ColumnDefinition Width="5" />-->
                 <ColumnDefinition Width="12*"/>
             </Grid.ColumnDefinitions>
-            <Grid
+            <!--<Grid
                 Grid.Column="0"
                 Background="#1E1E1E" 
                 Margin="5,0,0,5">
                
-                <!--<Grid.RowDefinitions>
+                -->
+            <!--<Grid.RowDefinitions>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="*"/>
                     <RowDefinition Height="*"/>
@@ -81,17 +82,18 @@
                 <TextBlock Grid.Row="1" Text="{Binding Path=SynchronizedText, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}" Foreground="White"/>
                 <Button Grid.Row="2" x:Name="btAddNumber" Content="Добавить число" DockPanel.Dock="Top" Command="{Binding ClickMethod}" />
                 <TabControl x:Name="lbNumbers" Grid.Row="3" ItemsSource="{Binding Path=numbers, UpdateSourceTrigger=PropertyChanged}" />-->
+            <!--
 
             </Grid>
             <GridSplitter 
                 Grid.Column="1"
                 Width="5" HorizontalAlignment="Stretch"
                 ShowsPreview="False"
-                Background="#2d2d2f"/>
+                Background="#2d2d2f"/>-->
             <TabControl 
                 Name="MyTabControl"
-                Grid.Column="2"
-
+                Grid.Column="0"
+                Margin="5,0,5,0"
                 ItemsSource="{Binding Source={StaticResource TypeDocumentations}}"  >
                 <TabControl.Resources>
                     <Style TargetType="TabControl" BasedOn="{StaticResource styleTabControl}"/>

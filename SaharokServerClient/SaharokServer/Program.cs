@@ -1,5 +1,5 @@
 ﻿using System;
-using SaharokServer.Server;
+using SaharokServer;
 
 namespace SaharokServer
 {

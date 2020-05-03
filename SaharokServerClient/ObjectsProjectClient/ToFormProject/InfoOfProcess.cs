@@ -2,55 +2,116 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Security.Permissions;
 using System.Text;
 using System.Threading.Tasks;
-using ObjectsProjectClient;
 
-namespace ObjectsToFormProjectClient
+namespace ObjectsProjectClient
 {
-    public static class InfoOfProcess
+    [Serializable]
+    public class InfoOfProcess : ISerializable
     {
-        private static int totalFormsFiles;
-        public static int TotalFormsFiles
+        private static InfoOfProcess instance;
+        private static object syncRoot = new Object();
+
+        private InfoOfProcess()
+        { }
+
+        public static InfoOfProcess GetInstance()
         {
-            get => totalFormsFiles;
+            if (instance == null)
+            {
+                lock (syncRoot)
+                {
+                    if (instance == null)
+                        instance = new InfoOfProcess();
+                }
+            }
+            return instance;
+        }
+        public static void SetInstance(InfoOfProcess infoOfProcess)
+        {
+            instance = infoOfProcess;
+        }
+
+        private int totalFormsFiles;
+        public int TotalFormsFiles
+        {
+            get
+            {
+                lock (syncRoot)
+                {
+                    return totalFormsFiles;
+                }
+            }
             set
             {
-                totalFormsFiles = value;
-                OnPropertyChanged(nameof(TotalFormsFiles));
+                lock (syncRoot)
+                {
+                    totalFormsFiles = value;
+                    OnPropertyChanged(nameof(TotalFormsFiles));
+                }
             }
         }
 
-        private static int totalFormsSections;
-        public static int TotalFormsSections
+        private int totalFormsSections;
+        public int TotalFormsSections
         {
-            get => totalFormsSections;
+            get
+            {
+                lock (syncRoot)
+                {
+                    return totalFormsSections;
+                }
+            }
             set
             {
-                totalFormsSections = value;
-                OnPropertyChanged(nameof(TotalFormsSections));
+                lock (syncRoot)
+                {
+                    totalFormsSections = value;
+                    OnPropertyChanged(nameof(TotalFormsSections));
+                }
             }
         }
 
-        private static int completeFormsFiles;
-        public static int CompleteFormsFiles
+        private int completeFormsFiles;
+        public int CompleteFormsFiles
         {
-            get => completeFormsFiles;
+            get
+            {
+                lock (syncRoot)
+                {
+                    return completeFormsFiles;
+                }
+            }
             set
             {
-                completeFormsFiles = value;
-                OnPropertyChanged(nameof(CompleteFormsFiles));
+                lock (syncRoot)
+                {
+                    completeFormsFiles = value;
+                    OnPropertyChanged(nameof(CompleteFormsFiles));
+                }
             }
         }
 
-        private static int completeFormsSections;
-        public static int CompleteFormsSections
+        private int completeFormsSections;
+        public int CompleteFormsSections
         {
-            get => completeFormsSections;
+            get
+            {
+                lock (syncRoot)
+                {
+                    return completeFormsSections;
+                }
+            }
             set
             {
-                completeFormsSections = value;
-                OnPropertyChanged(nameof(CompleteFormsSections));
+                lock (syncRoot)
+                {
+                    completeFormsSections = value;
+                    OnPropertyChanged(nameof(CompleteFormsSections));
+                }
             }
         }
 
@@ -59,6 +120,18 @@ namespace ObjectsToFormProjectClient
         private static void OnPropertyChanged(string propertyName = "")
         {
             PropertyChanged?.Invoke(null, new PropertyChangedEventArgs(propertyName));
+        }
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        protected InfoOfProcess(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.GetValue(this, info);
+        }
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.AddValue(this, info);
         }
     }
 }

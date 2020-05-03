@@ -6,42 +6,44 @@ using System.Security.Permissions;
 
 namespace ObjectsProjectServer
 {
+    [Serializable]
     public class InfoOfProcess : ISerializable
     {
         private static InfoOfProcess instance;
+        private static object syncRoot = new Object();
 
         private InfoOfProcess()
         { }
 
-        public static InfoOfProcess getInstance()
+        public static InfoOfProcess GetInstance()
         {
             if (instance == null)
                 instance = new InfoOfProcess();
             return instance;
         }
 
-        private static int totalFormsFiles;
-        public static int TotalFormsFiles
+        private int totalFormsFiles;
+        public int TotalFormsFiles
         {
             get => totalFormsFiles;
             set => totalFormsFiles = value;
         }
-        private static int totalFormsSections;
-        public static int TotalFormsSections
+        private int totalFormsSections;
+        public int TotalFormsSections
         {
             get => totalFormsSections;
             set => totalFormsSections = value;
         }
 
-        private static int completeFormsFiles;
-        public static int CompleteFormsFiles
+        private int completeFormsFiles;
+        public int CompleteFormsFiles
         {
             get => completeFormsFiles;
             set => completeFormsFiles = value;
         }
 
-        private static int completeFormsSections;
-        public static int CompleteFormsSections
+        private int completeFormsSections;
+        public int CompleteFormsSections
         {
             get => completeFormsSections;
             set => completeFormsSections = value;

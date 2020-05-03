@@ -30,7 +30,7 @@ namespace ObjectsProjectClient
     {
         public static MethodPDFFile ChooseMethodPDFFile(FileSection file)
         {
-            switch ((Path.GetExtension(file.Path)).ToLower())
+            switch (Path.GetExtension(file.Path).ToLower())
             {
                 case ".pdf":
                     {

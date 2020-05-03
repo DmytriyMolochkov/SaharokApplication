@@ -21,17 +21,11 @@ using System.Drawing;
 using System.Globalization;
 using System.Collections.Concurrent;
 using ObjectsProjectClient;
-using ObjectsToFormProjectClient;
 
 namespace Saharok.ViewModel
 {
     class MainWindowViewModel : BaseViewModel
     {
-        #region Constructor
-
-        /// <summary>
-        /// Constructor.
-        /// </summary>
         public MainWindowViewModel()
         {
             LoadProjectEvent += LoadProject;
@@ -40,6 +34,7 @@ namespace Saharok.ViewModel
             ProcessOffEvent += ProcessOff;
             ExceptionEvent += ExceptionBorder;
             OnCloseProjectEvent();
+            InfoOfProcess infoOfProcess = InfoOfProcess.GetInstance();
             InfoOfProcess.PropertyChanged += (object sender, PropertyChangedEventArgs e) => UpDateFormedProgressBarText();
             ClickLoadProject = new Command(arg => LoadProject(), arg => LoadProject_CanExecute());
             ClickCloseProject = new Command(arg => CloseProject(), arg => CloseProject_CanExecute());
@@ -80,7 +75,7 @@ namespace Saharok.ViewModel
             , arg => FormOnServerProject_CanExecute());
         }
 
-        #endregion
+        private static object syncRoot = new Object();
 
         private Project myProject;
         public Project MyProject
@@ -279,6 +274,83 @@ namespace Saharok.ViewModel
             createNewProjectWindow.Close();
         }
 
+        private void ErrorHandling(AggregateException ae)
+        {
+            List<string> messeges = new List<string>();
+            foreach (var ex in ae.InnerExceptions)
+            {
+                if (ex is AggregateException)
+                {
+                    foreach (var e in ((AggregateException)ex).InnerExceptions)
+                    {
+                        messeges.Add(e.Message);
+                    }
+                }
+                else
+                {
+                    messeges.Add(ex.Message);
+                }
+            }
+            //System.Windows.MessageBox.Show($"Во время работы программы произошли следующие ошибки:{Environment.NewLine}" +
+            //    $"{Environment.NewLine}      " +
+            //    String.Join($"{Environment.NewLine}      ", messeges), $"Упс... {GetRandomSmile()} что - то пошло не так    ");
+            System.Windows.MessageBox.Show(String.Join($"{Environment.NewLine}", messeges), $"Упс... {GetRandomSmile()} что - то пошло не так    ");
+            OnExceptionEvent();
+        }
+
+        static Random rnd = new Random();
+        private static string GetRandomSmile()
+        {
+            string[] smiles = {
+                @"¯\_(ツ)_ /¯",
+
+                @"̿ ̿ ̿ ̿ ̿'̿'\̵͇̿̿\з=(͠° ͟ʖ ͡°)=ε/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿ ̿ ",
+
+                @"(╯°□°)╯┻┻",
+
+                @"(╯°□°）╯︵(.o.)",
+
+                @"╰(°益°)╯",
+
+                @"(˘▽˘)っ♨",
+
+                @"｀、ヽ｀ヽ｀、ヽ(ノ＞＜)ノ ｀、ヽ｀☂ヽ｀、ヽ",
+
+                @"(ง ͠° ͟ل͜ ͡°)ง",
+
+                @"◉_◉",
+
+                @"(☞ﾟヮﾟ)☞",
+
+                @"༼ຈل͜ຈ༽ﾉ",
+
+                @"†(•̪●)†",
+
+                @"(╬ Ò﹏Ó)",
+
+                @"٩(╬ʘ益ʘ╬)۶",
+
+                @"(ิ_ิ)?",
+
+                @"(҂｀ﾛ´)︻/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿ ̿ ",
+
+                @"(╯°益°)╯彡┻━┻",
+
+                @"┻━┻ ︵ヽ(`Д´)ﾉ︵ ┻━┻",
+
+                @"╚(ಠ_ಠ)=┐",
+
+                @"(⌐■_■)>¸,ø¤º°`°º¤ø,¸¸",
+
+                @"(ಥ﹏ಥ)",
+
+                @"＼(º □ º l|l)/",
+
+                @"(╥﹏╥)"};
+
+            return smiles[rnd.Next(smiles.Length)];
+        }
+
         private void FormOnServerProject()
         {
             try
@@ -308,13 +380,10 @@ namespace Saharok.ViewModel
             }
             catch (AggregateException ae)
             {
-                foreach (var ex in ae.InnerExceptions)
-                {
-                    System.Windows.MessageBox.Show(ex.Message, "Ошибка");
-                }
-                OnExceptionEvent();
+                ErrorHandling(ae);
             }
         }
+
         private void FormOnServerProject(TypeDocumentation typeDocumentation)
         {
             try
@@ -327,11 +396,7 @@ namespace Saharok.ViewModel
             }
             catch (AggregateException ae)
             {
-                foreach (var ex in ae.InnerExceptions)
-                {
-                    System.Windows.MessageBox.Show(ex.Message, "Ошибка");
-                }
-                OnExceptionEvent();
+                ErrorHandling(ae);
             }
         }
         private void FormOnServerProject(Section section)
@@ -346,11 +411,7 @@ namespace Saharok.ViewModel
             }
             catch (AggregateException ae)
             {
-                foreach (var ex in ae.InnerExceptions)
-                {
-                    System.Windows.MessageBox.Show(ex.Message, "Ошибка");
-                }
-                OnExceptionEvent();
+                ErrorHandling(ae);
             }
         }
 
@@ -372,11 +433,7 @@ namespace Saharok.ViewModel
             }
             catch (AggregateException ae)
             {
-                foreach (var ex in ae.InnerExceptions)
-                {
-                    System.Windows.MessageBox.Show(ex.Message, "Ошибка");
-                }
-                OnExceptionEvent();
+                ErrorHandling(ae);
             }
         }
 
@@ -472,23 +529,27 @@ namespace Saharok.ViewModel
 
         public void UpDateFormedProgressBarText()
         {
-            InfoOfProcess.Get
-            FormedFilesText = "Сконвертировано PDF файлов: " + InfoOfProcess.CompleteFormsFiles + " / " + InfoOfProcess.TotalFormsFiles;
-            FormedSectionsText = "Сформировано разделов: " + InfoOfProcess.CompleteFormsSections + " / " + InfoOfProcess.TotalFormsSections;
+            InfoOfProcess infoOfProcess = InfoOfProcess.GetInstance();
+            lock (syncRoot)
+            {
+                FormedFilesText = "Сконвертировано PDF файлов: " + infoOfProcess.CompleteFormsFiles + " / " + infoOfProcess.TotalFormsFiles;
+                FormedSectionsText = "Сформировано разделов: " + infoOfProcess.CompleteFormsSections + " / " + infoOfProcess.TotalFormsSections;
+            }
+
         }
 
         void ProcessWorks(object source, EventArgs arg)
         {
-            IsProcessed = true;
             Task.Run(() => TimerAnimation());
-            StatusBarText = "Формируется проект";
             Task.Run(() => BootAnimation());
-            StatusBarColor = "ProcessWorks";
-            InfoOfProcess.CompleteFormsFiles = 0;
-            InfoOfProcess.CompleteFormsSections = 0;
-            InfoOfProcess.TotalFormsFiles = 0;
-            InfoOfProcess.TotalFormsSections = 0;
+            
+            InfoOfProcess infoOfProcess = InfoOfProcess.GetInstance();
             UpDateFormedProgressBarText();
+            infoOfProcess.CompleteFormsFiles = 0;
+            infoOfProcess.CompleteFormsSections = 0;
+            IsProcessed = true;
+            StatusBarText = "Формируется проект";
+            StatusBarColor = "ProcessWorks";
         }
 
         void ProcessOff(object source, EventArgs arg)

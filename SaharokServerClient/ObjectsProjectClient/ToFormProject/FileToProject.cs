@@ -2,13 +2,15 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Security.Permissions;
 using System.Text;
 using System.Threading.Tasks;
-using ObjectsProjectClient;
 
-namespace ObjectsToFormProjectClient
+namespace ObjectsProjectClient
 {
-    public class FileToProject
+    [Serializable]
+    public class FileToProject : ISerializable
     {
         public string Path;
         public string Name;
@@ -17,5 +19,16 @@ namespace ObjectsToFormProjectClient
         public MethodPDFFile MethodPDFFile;
         public SectionToProject SectionToProject;
 
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        protected FileToProject(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.GetValue(this, info);
+        }
+
+        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            FieldsSerializble.AddValue(this, info);
+        }
     }
 }

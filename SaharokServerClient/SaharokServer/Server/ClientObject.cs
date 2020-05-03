@@ -5,7 +5,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using ObjectsProjectServer;
 
-namespace SaharokServer.Server
+namespace SaharokServer
 {
     public class ClientObject
     {
@@ -39,21 +39,21 @@ namespace SaharokServer.Server
                 // в бесконечном цикле получаем сообщения от клиента
                 while (true)
                 {
-                    try
-                    {
+                    //try
+                    //{
                         GetMessage();
                         //message = String.Format("{0}: {1}", userName, message);
                         //Console.WriteLine(message);
                         //server.BroadcastMessage(message, this.Id);
-                    }
-                    catch (Exception ex)
-                    {
-                        //message = String.Format("{0}: покинул чат", userName);
-                        //Console.WriteLine(message);
-                        //server.BroadcastMessage(message, this.Id);
-                        //break;
-                        Console.WriteLine(ex.Message);
-                    }
+                    //}
+                    //catch (Exception ex)
+                    //{
+                    //    //message = String.Format("{0}: покинул чат", userName);
+                    //    //Console.WriteLine(message);
+                    //    //server.BroadcastMessage(message, this.Id);
+                    //    //break;
+                    //    Console.WriteLine(ex.Message);
+                    //}
                 }
             //}
             //catch (Exception ex)
@@ -70,12 +70,11 @@ namespace SaharokServer.Server
         }
 
         // чтение входящего сообщения и преобразование в строку
-        private void GetMessage()
+        public void GetMessage()
         {
             BinaryFormatter formatter = new BinaryFormatter();
             formatter.Binder = new Type1ToType2DeserializationBinder();
 
-            //Project section = null;
             object data = null;
             Console.WriteLine("Начинаю десериализацию");
             do
@@ -85,16 +84,17 @@ namespace SaharokServer.Server
             while (Nstream.DataAvailable);
 
             FilesToPDFSort filesToPDFSort = null;
-            if (data is IObjectsToProjectContainer)
+            if (data is IFilesToProjectContainer)
             {
-                filesToPDFSort = ((IObjectsToProjectContainer)data).GetFilesToPDFSort();
+                filesToPDFSort = ((IFilesToProjectContainer)data).GetFilesToPDFSort();
             }
             else
             {
-                throw new Exception($"Полученный сервером класс не поддерживает интерфейс: {typeof(IObjectsToProjectContainer).Name}.");
+                throw new Exception($"Полученный сервером класс не поддерживает интерфейс: {typeof(IFilesToProjectContainer).Name}.");
             }
-
-            filesToPDFSort.ToString();
+            formatter.Serialize(Nstream, InfoOfProcess.GetInstance());
+            formatter.Serialize(Nstream, filesToPDFSort);
+            Console.WriteLine();
         }
 
         // закрытие подключения

@@ -39,31 +39,24 @@ namespace Saharok.Model.Client
             formatter.Serialize(Nstream, file);
         }
         // получение сообщений
-        static void ReceiveMessage()
+        public static FilesToPDFSort ReceiveMessage()
         {
             while (true)
             {
-                try
-                {
-                    byte[] data = new byte[64]; // буфер для получаемых данных
-                    StringBuilder builder = new StringBuilder();
-                    int bytes = 0;
-                    do
-                    {
-                        bytes = Nstream.Read(data, 0, data.Length);
-                        builder.Append(Encoding.Unicode.GetString(data, 0, bytes));
-                    }
-                    while (Nstream.DataAvailable);
+                BinaryFormatter formatter = new BinaryFormatter();
+                formatter.Binder = new Type1ToType2DeserializationBinder();
 
-                    string message = builder.ToString();
-                    Console.WriteLine(message);//вывод сообщения
-                }
-                catch
+                object data = null;
+                Console.WriteLine("Начинаю десериализацию");
+                do
                 {
-                    Console.WriteLine("Подключение прервано!"); //соединение было прервано
-                    Console.ReadLine();
-                    Disconnect();
+                    data = formatter.Deserialize(Nstream);
                 }
+                while (Nstream.DataAvailable);
+                if (data.GetType().Name == "InfoOfProcess")
+                    InfoOfProcess.SetInstance((InfoOfProcess)data);
+                else
+                    return (FilesToPDFSort)data;
             }
         }
 

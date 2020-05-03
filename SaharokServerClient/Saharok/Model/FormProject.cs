@@ -2,20 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using Saharok.Model;
 using System.IO;
-using iTextSharp.text;
-using iTextSharp.text.pdf;
+using iText.Kernel.Pdf;
+using iText.Kernel.Utils;
 using Microsoft.Office.Interop.Word;
 using Microsoft.Office.Interop.Excel;
-using Kompas6API5;
-using KAPITypes;
 using KompasAPI7;
-using Kompas6Constants;
-using Pdf2d_LIBRARY;
-using Autodesk.AutoCAD.Interop;
-using Autodesk.AutoCAD.Interop.Common;
 using WordApp = Microsoft.Office.Interop.Word.Application;
 using ExcelApp = Microsoft.Office.Interop.Excel.Application;
 using KompasApp = Kompas6API5.KompasObject;
@@ -26,13 +18,11 @@ using System.IO.Compression;
 using System.ComponentModel;
 using ObjectsProjectClient;
 using Saharok.Model.Client;
-using ObjectsToFormProjectClient;
-
 namespace Saharok.Model
 {
     public static class FormProject
     {
-        
+
         public static IEnumerable<IEnumerable<T>> SplitIntoGroupsByTheResultOfDividing<T>(
             this IEnumerable<T> source,
             int count)
@@ -167,49 +157,45 @@ namespace Saharok.Model
         public static void CreateProject(Project project)
         {
             ClientObject.SendMessage(project);
-            //ClientObject.SendMessage(project);
-            //List<SectionToProject> sectionsToProject = GetSectionsToProject(project, "Готовый проект", "PDF постранично");
-            //FilesToPDFSort filesToPDFSort = new FilesToPDFSort(sectionsToProject);
-            //List<SectionToProject> sectionsToProject=null;
-            //FilesToPDFSort filesToPDFSort = null;
-            //FilesToPDFSort.CheckFilesToPDFSortToErrors(filesToPDFSort);
-            //DoPDFFileUsingApps(filesToPDFSort);
-            //CheckSectionIsDone(sectionsToProject);
+            FilesToPDFSort filesToPDFSort = ClientObject.ReceiveMessage();
+            filesToPDFSort.CheckFilesToPDFSortToErrors();
+            DoPDFFileUsingApps(filesToPDFSort);
+            CheckSectionsIsDone(filesToPDFSort);
         }
         public static void CreateProject(TypeDocumentation typeDocumentation)
         {
             ClientObject.SendMessage(typeDocumentation);
-            //List<SectionToProject> sectionsToProject = GetSectionsToProject(typeDocumentation, "Готовый проект", "PDF постранично");
-            //FilesToPDFSort filesToPDFSort = new FilesToPDFSort(sectionsToProject);
-            //List<SectionToProject> sectionsToProject = null;
-            //FilesToPDFSort filesToPDFSort = null;
-            //FilesToPDFSort.CheckFilesToPDFSortToErrors(filesToPDFSort);
-            //DoPDFFileUsingApps(filesToPDFSort);
-            //CheckSectionIsDone(sectionsToProject);
+            ClientObject.SendMessage(typeDocumentation);
+            FilesToPDFSort filesToPDFSort = ClientObject.ReceiveMessage();
+            filesToPDFSort.CheckFilesToPDFSortToErrors();
+            DoPDFFileUsingApps(filesToPDFSort);
+            CheckSectionsIsDone(filesToPDFSort);
         }
         public static void CreateProject(ObjectsProjectClient.Section section)
         {
             ClientObject.SendMessage(section);
-            //List<SectionToProject> sectionsToProject = new List<SectionToProject> { GetSectionToProject(section, "Готовый проект", "PDF постранично") };
-            //FilesToPDFSort filesToPDFSort = new FilesToPDFSort(sectionsToProject);
-            //List<SectionToProject> sectionsToProject = null;
-            //FilesToPDFSort filesToPDFSort = null;
-            //FilesToPDFSort.CheckFilesToPDFSortToErrors(filesToPDFSort);
-            //DoPDFFileUsingApps(filesToPDFSort);
-            //CheckSectionIsDone(sectionsToProject);
+            ClientObject.SendMessage(section);
+            FilesToPDFSort filesToPDFSort = ClientObject.ReceiveMessage();
+            filesToPDFSort.CheckFilesToPDFSortToErrors();
+            DoPDFFileUsingApps(filesToPDFSort);
+            CheckSectionsIsDone(filesToPDFSort);
         }
         public static void CreateProject(FileSection file)
         {
             ClientObject.SendMessage(file);
-            //FilesToPDFSort filesToPDFSort = new FilesToPDFSort(GetFilesToPDFToPages(file));
-            //FilesToPDFSort filesToPDFSort = null;
-            //FilesToPDFSort.CheckFilesToPDFSortToErrors(filesToPDFSort);
-            //DoPDFFileUsingApps(filesToPDFSort);
+            ClientObject.SendMessage(file);
+            FilesToPDFSort filesToPDFSort = ClientObject.ReceiveMessage();
+            filesToPDFSort.CheckFilesToPDFSortToErrors();
+            DoPDFFileUsingApps(filesToPDFSort);
+            CheckSectionsIsDone(filesToPDFSort);
         }
 
         public static bool CheckSectionReadiness(FileToProject fileToProject)
         {
-            if (fileToProject.SectionToProject != null && fileToProject.SectionToProject.FilesToPDF.Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF).All(file => file.IsDone == true))
+            if (fileToProject.SectionToProject != null &&
+                fileToProject.SectionToProject.FilesToProject
+                .Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF)
+                .All(file => file.IsDone == true))
             {
                 return true;
             }
@@ -217,83 +203,97 @@ namespace Saharok.Model
                 return false;
         }
 
-        public static void CheckSectionIsDone(List<SectionToProject> sectionsToProject)
+        public static void CheckSectionsIsDone(FilesToPDFSort filesToPDFSort)
         {
             List<System.Threading.Tasks.Task> tasks = new List<System.Threading.Tasks.Task>();
-            sectionsToProject.Where(section => section.IsDone == false).ToList().ForEach(section =>
+            filesToPDFSort.GetAllSectionsToProject().Where(section => section.IsDone == false).ToList().ForEach(section =>
             {
                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                 {
                     throw new Exception(
-                    "Не удалось сформировать раздел: "
-                    + Environment.NewLine
-                    + Path.GetFileName(section.Path)
-                    + " из-за несконвертированных в PDF файлов:"
-                    + Environment.NewLine + "      "
-                    + String.Join(
-                        Environment.NewLine + "      ",
-                        section.FilesToPDF.Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF).Where(file => file.IsDone == false).Select(file => file.Path))
-                    );
+                    $"Не удалось сформировать раздел:{Environment.NewLine}" +
+                    $"{Path.GetFileName(section.Path)} из-за несконвертированных в PDF файлов: {Environment.NewLine}      " +
+                    String.Join($"{Environment.NewLine}      ",
+                        section.FilesToProject
+                        .Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF)
+                        .Where(file => file.IsDone == false)
+                        .Select(file => file.Path)) + Environment.NewLine);
                 }));
             });
             System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
         }
 
-        public static void CheckFilesToPDFIsDone(List<SectionToProject> sectionsToProject)
-        {
-            if (sectionsToProject.SelectMany(section => section.FilesToPDF).Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF).All(file => file.IsDone == true))
-            {
+        //public static void CheckFilesToProjectIsDone(List<SectionToProject> sectionsToProject)
+        //{
+        //    if (sectionsToProject
+        //        .SelectMany(section => section.FilesToProject)
+        //        .Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF)
+        //        .All(file => file.IsDone == true))
+        //    {
 
-            }
-            else
-                ;
-        }
+        //    }
+        //    else
+        //        ;
+        //}
+
+        private static object syncRoot = new Object();
 
         private static void DoPDFFileUsingApps(FilesToPDFSort filesToPDFSort)
         {
             try
             {
                 Apps apps = new Apps();
+                InfoOfProcess infoOfProcess = InfoOfProcess.GetInstance();
                 List<System.Threading.Tasks.Task> tasks = new List<System.Threading.Tasks.Task>();
                 List<System.Threading.Tasks.Task> localTasks = new List<System.Threading.Tasks.Task>();
                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                 {
-                    filesToPDFSort.FilesToPDFfromPDF.ForEach(file =>
+                    bool sectionReadiness;
+                    filesToPDFSort.FilesToProjectfromPDF.ForEach(file =>
                     {
                         DoPDFfromPDF(file.Path, file.OutputFileName);
-                        file.IsDone = true;
-                        InfoOfProcess.CompleteFormsFiles++;
-                        localTasks.Add(System.Threading.Tasks.Task.Run(() =>
+                        lock (syncRoot)
                         {
-                            if (CheckSectionReadiness(file))
+                            file.IsDone = true;
+                            infoOfProcess.CompleteFormsFiles++;
+                            sectionReadiness = CheckSectionReadiness(file);
+                        }
+                        if (sectionReadiness)
+                        {
+                            localTasks.Add(System.Threading.Tasks.Task.Run(() =>
                             {
                                 FormSection(file.SectionToProject);
-                            }
-                        }));
+                            }));
+                        }
                     });
                 }));
                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                 {
                     List<System.Threading.Tasks.Task> stackTasks = new List<System.Threading.Tasks.Task>();
-                    filesToPDFSort.FilesToPDFfromWord.SplitIntoGroupsByTheRemainderOfDividing(2).ToList()
+                    filesToPDFSort.FilesToProjectfromWord.SplitIntoGroupsByTheRemainderOfDividing(2).ToList()
                         .ForEach(stack =>
                         {
                             stackTasks.Add(System.Threading.Tasks.Task.Run(() =>
                             {
                                 WordApp word = new WordApp();
                                 apps.words.Add(word);
+                                bool sectionReadiness;
                                 stack.ToList().ForEach(file =>
                                 {
                                     DoPDFfromWord(file.Path, file.OutputFileName, ref word);
-                                    file.IsDone = true;
-                                    InfoOfProcess.CompleteFormsFiles++;
-                                    localTasks.Add(System.Threading.Tasks.Task.Run(() =>
+                                    lock (syncRoot)
                                     {
-                                        if (CheckSectionReadiness(file))
+                                        file.IsDone = true;
+                                        infoOfProcess.CompleteFormsFiles++;
+                                        sectionReadiness = CheckSectionReadiness(file);
+                                    }
+                                    if (sectionReadiness)
+                                    {
+                                        localTasks.Add(System.Threading.Tasks.Task.Run(() =>
                                         {
                                             FormSection(file.SectionToProject);
-                                        }
-                                    }));
+                                        }));
+                                    }
                                 });
                                 System.Threading.Tasks.Task.Run(() => Apps.QuitWord(ref word));
                             }));
@@ -302,45 +302,55 @@ namespace Saharok.Model
                 }));
                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                 {
-                    if (filesToPDFSort.FilesToPDFfromExcel.Count() > 0)
+                    if (filesToPDFSort.FilesToProjectfromExcel.Count() > 0)
                         Apps.RunExcel(ref apps.excel);
-                    filesToPDFSort.FilesToPDFfromExcel.ForEach(file =>
+                    bool sectionReadiness;
+                    filesToPDFSort.FilesToProjectfromExcel.ForEach(file =>
                     {
                         DoPDFfromExcel(file.Path, file.OutputFileName, ref apps.excel);
-                        file.IsDone = true;
-                        InfoOfProcess.CompleteFormsFiles++;
-                        localTasks.Add(System.Threading.Tasks.Task.Run(() =>
+                        lock (syncRoot)
                         {
-                            if (CheckSectionReadiness(file))
+                            file.IsDone = true;
+                            infoOfProcess.CompleteFormsFiles++;
+                            sectionReadiness = CheckSectionReadiness(file);
+                        }
+                        if (sectionReadiness)
+                        {
+                            localTasks.Add(System.Threading.Tasks.Task.Run(() =>
                             {
                                 FormSection(file.SectionToProject);
-                            }
-                        }));
+                            }));
+                        }
                     });
                     System.Threading.Tasks.Task.Run(() => Apps.QuitExcel(ref apps.excel));
                 }));
                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                 {
                     List<System.Threading.Tasks.Task> stackTasks = new List<System.Threading.Tasks.Task>();
-                    filesToPDFSort.FilesToPDFfromKompas.SplitIntoGroupsByTheRemainderOfDividing(3).ToList()
+                    filesToPDFSort.FilesToProjectfromKompas.SplitIntoGroupsByTheRemainderOfDividing(3).ToList()
                         .ForEach(stack =>
                          {
                              stackTasks.Add(System.Threading.Tasks.Task.Run(() =>
                              {
                                  Apps.Kompas kompas = new Apps.Kompas();
                                  apps.kompases.Add(kompas);
+                                 bool sectionReadiness;
                                  stack.ToList().ForEach(file =>
                                  {
                                      DoPDFfromKompas(file.Path, file.OutputFileName, ref kompas);
-                                     file.IsDone = true;
-                                     InfoOfProcess.CompleteFormsFiles++;
-                                     localTasks.Add(System.Threading.Tasks.Task.Run(() =>
+                                     lock (syncRoot)
                                      {
-                                         if (CheckSectionReadiness(file))
+                                         file.IsDone = true;
+                                         infoOfProcess.CompleteFormsFiles++;
+                                         sectionReadiness = CheckSectionReadiness(file);
+                                     }
+                                     if (sectionReadiness)
+                                     {
+                                         localTasks.Add(System.Threading.Tasks.Task.Run(() =>
                                          {
                                              FormSection(file.SectionToProject);
-                                         }
-                                     }));
+                                         }));
+                                     }
                                  });
                                  System.Threading.Tasks.Task.Run(() => kompas = kompas.Quit());
                              }));
@@ -349,25 +359,55 @@ namespace Saharok.Model
                 }));
                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                 {
-                    filesToPDFSort.FilesToPDFfromAutoCad.ToList()
-                        .ForEach(file =>
+                    bool sectionReadiness;
+                    filesToPDFSort.FilesToProjectfromAutoCad.ToList().ForEach(file =>
                         {
-
                             DoPDFfromAutoCAD(file.Path, file.OutputFileName);
-                            file.IsDone = true;
-                            InfoOfProcess.CompleteFormsFiles++;
-                            localTasks.Add(System.Threading.Tasks.Task.Run(() =>
+                            lock (syncRoot)
                             {
-                                if (CheckSectionReadiness(file))
+                                file.IsDone = true;
+                                infoOfProcess.CompleteFormsFiles++;
+                                sectionReadiness = CheckSectionReadiness(file);
+                            }
+                            if (sectionReadiness)
+                            {
+                                localTasks.Add(System.Threading.Tasks.Task.Run(() =>
                                 {
                                     FormSection(file.SectionToProject);
-                                }
-                            }));
+                                }));
+                            }
                         });
                 }));
 
+                var emptySectionsFromPDF = new List<string>();
+                filesToPDFSort.GetAllSectionsToProject()
+                    .Where(section => section.FilesToProject.All(file => file.MethodPDFFile == MethodPDFFile.DontPDF))
+                    .ToList()
+                    .ForEach(section => 
+                    {
+                        emptySectionsFromPDF.Add(section.Path);
+                        tasks.Add(System.Threading.Tasks.Task.Run(() => FormSection(section)));
+                    });
+
                 System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
                 System.Threading.Tasks.Task.WaitAll(localTasks.ToArray());
+
+                if (emptySectionsFromPDF.Count == 1)
+                {
+                    System.Windows.MessageBox.Show($"Обратите внивание, что следующий раздел не содержат файлов для PDF альбома: {Environment.NewLine}      " +
+                        String.Join($"{Environment.NewLine}      ", emptySectionsFromPDF) +
+                        $"{Environment.NewLine}" +
+                        $"{Environment.NewLine}      " +
+                        "поэтому для него был сформирован только ZIP архив.");
+                }
+                else if (emptySectionsFromPDF.Count > 1)
+                {
+                    System.Windows.MessageBox.Show($"Обратите внивание, что следующие разделы не содержат файлов для PDF альбома: {Environment.NewLine}      " +
+                    String.Join($"{Environment.NewLine}      ", emptySectionsFromPDF) +
+                    $"{Environment.NewLine}" +
+                    $"{Environment.NewLine}      " +
+                    "поэтому для них были сформированы только ZIP архивы.");
+                }
             }
             catch (AggregateException ae)
             {
@@ -387,9 +427,8 @@ namespace Saharok.Model
             }
             catch (Exception ex)
             {
-                throw new Exception(ex.Message +
-                    "\n TargetSite:\n" + ex.TargetSite +
-                    "\n StackTrace:\n" + ex.StackTrace);
+                throw new Exception($"При копировании файла {fileName} произошла ошибка: {Environment.NewLine} {ex.Message}.{Environment.NewLine}"
+                    );
             }
         }
 
@@ -418,9 +457,7 @@ namespace Saharok.Model
             catch (Exception ex)
             {
                 Apps.QuitWord(ref word);
-                throw new Exception(ex.Message +
-                    "\n TargetSite:\n" + ex.TargetSite +
-                    "\n StackTrace:\n" + ex.StackTrace);
+                throw new Exception($"При формировании файла PDF {fileName} Word'ом произошла ошибка: {Environment.NewLine} {ex.Message}.{Environment.NewLine}");
             }
         }
 
@@ -442,9 +479,7 @@ namespace Saharok.Model
             catch (Exception ex)
             {
                 Apps.QuitExcel(ref excel);
-                throw new Exception(ex.Message +
-                    "\n TargetSite:\n" + ex.TargetSite +
-                    "\n StackTrace:\n" + ex.StackTrace);
+                throw new Exception($"При формировании файла PDF {fileName} Excel'ем произошла ошибка: {Environment.NewLine} {ex.Message}.{Environment.NewLine}");
             }
         }
 
@@ -462,9 +497,7 @@ namespace Saharok.Model
             catch (Exception ex)
             {
                 Apps.QuitKompas(ref kompas);
-                throw new Exception(ex.Message +
-                    "\n TargetSite:\n" + ex.TargetSite +
-                    "\n StackTrace:\n" + ex.StackTrace);
+                throw new Exception($"При формировании файла PDF {fileName} Kompas'ом произошла ошибка: {Environment.NewLine} {ex.Message}.{Environment.NewLine}");
             }
         }
 
@@ -473,32 +506,44 @@ namespace Saharok.Model
             //тут могла быть ваша реклама
         }
 
-        public static void CombinePDF(List<string> pathSourceFile, string pathPDFFile)
+        public static void CombinePDF(List<string> pathSourceFiles, string pathPDFFile)
         {
-            using (var stream = new FileStream(pathPDFFile, FileMode.Create))
+            if (pathSourceFiles.Count > 0)
             {
-                Merge(pathSourceFile, stream);
+                using (var stream = new FileStream(pathPDFFile, FileMode.Create))
+                {
+                    Merge(pathSourceFiles, stream);
+                }
             }
         }
-
-        private static void Merge(IEnumerable<string> fileNames, Stream target)
+        private static void Merge(List<string> files, FileStream stream)
         {
-            using (var document = new iTextSharp.text.Document())
-            using (var pdf = new PdfCopy(document, target))
+            try
             {
-                document.Open();
-                foreach (string file in fileNames)
+                List<System.Threading.Tasks.Task> tasks = new List<System.Threading.Tasks.Task>();
+
+                using (var pdf = new PdfDocument(new PdfWriter(stream)))
                 {
-                    using (var reader = new PdfReader(file))
+                    PdfMerger merger = new PdfMerger(pdf);
+                    foreach (var file in files)
                     {
-                        pdf.AddDocument(reader);
+                        using (var SourcePdf = new PdfDocument(new PdfReader(file)))
+                        {
+                            merger.Merge(SourcePdf, 1, SourcePdf.GetNumberOfPages());
+                        }
                     }
                 }
             }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+
         }
 
         public static void FormSection(SectionToProject sectionToProject)
         {
+            InfoOfProcess infoOfProcess = InfoOfProcess.GetInstance();
             List<System.Threading.Tasks.Task> tasks = new List<System.Threading.Tasks.Task>();
             foreach (var outputSectionPath in sectionToProject.OutputSectionPaths)
             {
@@ -506,7 +551,7 @@ namespace Saharok.Model
                 {
                     case MethodFormFile.ZIP:
                         {
-                            if (sectionToProject.FilesToPDF.All(file => File.Exists(file.Path)))
+                            if (sectionToProject.FilesToProject.All(file => File.Exists(file.Path)))
                             {
                                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                                 {
@@ -522,33 +567,35 @@ namespace Saharok.Model
                                     {
                                         using (ZipArchive archive = new ZipArchive(fileStream, ZipArchiveMode.Create, true, Encoding.GetEncoding(866)))
                                         {
-                                            foreach (FileToProject fileToProject in sectionToProject.FilesToPDF)
+                                            foreach (FileToProject fileToProject in sectionToProject.FilesToProject)
                                             {
                                                 try
                                                 {
                                                     archive.CreateEntryFromFile(fileToProject.Path, fileToProject.Name);
                                                 }
-                                                catch (Exception e)
+                                                catch (AggregateException ae)
                                                 {
-                                                    throw e;
+                                                    throw ae;
                                                 }
                                             };
-
                                         }
                                     }
                                 }));
                             }
                             else
                             {
-                                throw new Exception("Для архива " + Path.GetFileName(outputSectionPath.Key) + "не удалось найти файлы : "
-                                    + Environment.NewLine + "      "
-                                    + String.Join(Environment.NewLine + "      ", sectionToProject.FilesToPDF.Where(file => !File.Exists(file.Path)).Select(file => file.Path)));
+                                throw new Exception($"Для архива {Path.GetFileName(outputSectionPath.Key)} не удалось найти файлы: {Environment.NewLine}      "
+                                    + String.Join(
+                                        $"{Environment.NewLine}      ", sectionToProject.FilesToProject
+                                        .Where(file => !File.Exists(file.Path))
+                                        .Select(file => file.Path))
+                                    + Environment.NewLine);
                             }
                             break;
                         }
                     case MethodFormFile.PDF:
                         {
-                            if (sectionToProject.FilesToPDF.Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF).All(file => File.Exists(file.OutputFileName)))
+                            if (sectionToProject.FilesToProject.Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF).All(file => File.Exists(file.OutputFileName)))
                             {
                                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                                 {
@@ -560,30 +607,41 @@ namespace Saharok.Model
                                     {
                                         File.Delete(outputSectionPath.Key);
                                     }
-                                    CombinePDF(sectionToProject.FilesToPDF
-                                        .Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF)
-                                        .Where(file => file.MethodPDFFile != MethodPDFFile.AutoCad)
-                                        .Select(file => file.OutputFileName).ToList(), outputSectionPath.Key);
+                                    try
+                                    {
+                                        CombinePDF(sectionToProject.FilesToProject
+                                            .Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF)
+                                            .Where(file => file.MethodPDFFile != MethodPDFFile.AutoCad)
+                                            .Select(file => file.OutputFileName).ToList(), outputSectionPath.Key);
+                                    }
+                                    catch (AggregateException ae)
+                                    {
+                                        throw ae;
+                                    }
 
                                 }));
                             }
                             else
                             {
-                                throw new Exception("Для альбома " + Path.GetFileName(outputSectionPath.Key) + " не удалось найти PDF файлы : "
-                                    + Environment.NewLine + "      "
-                                    + String.Join(Environment.NewLine + "      ", sectionToProject.FilesToPDF.Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF).Where(file => !File.Exists(file.OutputFileName)).Select(file => file.OutputFileName)));
+                                throw new Exception($"Для альбома {Path.GetFileName(outputSectionPath.Key)} не удалось найти PDF файлы: {Environment.NewLine}      "
+                                    + String.Join(
+                                        $"{Environment.NewLine}      ", sectionToProject.FilesToProject
+                                        .Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF)
+                                        .Where(file => !File.Exists(file.OutputFileName))
+                                        .Select(file => file.OutputFileName))
+                                    + Environment.NewLine);
                             }
                             break;
                         }
                     default:
                         {
-                            throw new Exception($"Неизвестный метод формирования секции: {outputSectionPath.Value}");
+                            throw new Exception($"Неизвестный метод формирования секции: {outputSectionPath.Value}.{Environment.NewLine}");
                         }
                 }
             }
             System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
             sectionToProject.IsDone = true;
-            InfoOfProcess.CompleteFormsSections++;
+            infoOfProcess.CompleteFormsSections++;
         }
 
         #region DefaultFields

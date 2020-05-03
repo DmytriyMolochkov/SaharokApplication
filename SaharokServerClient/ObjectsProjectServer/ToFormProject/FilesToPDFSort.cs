@@ -6,47 +6,74 @@ using System.Security.Permissions;
 
 namespace ObjectsProjectServer
 {
+    [Serializable]
     public class FilesToPDFSort : ISerializable
     {
-        public List<FileToProject> FilesToPDFfromPDF = new List<FileToProject>();
-        public List<FileToProject> FilesToPDFfromWord = new List<FileToProject>();
-        public List<FileToProject> FilesToPDFfromExcel = new List<FileToProject>();
-        public List<FileToProject> FilesToPDFfromKompas = new List<FileToProject>();
-        public List<FileToProject> FilesToPDFfromAutoCad = new List<FileToProject>();
+        public List<FileToProject> FilesToProjectfromPDF = new List<FileToProject>();
+        public List<FileToProject> FilesToProjectfromWord = new List<FileToProject>();
+        public List<FileToProject> FilesToProjectfromExcel = new List<FileToProject>();
+        public List<FileToProject> FilesToProjectfromKompas = new List<FileToProject>();
+        public List<FileToProject> FilesToProjectfromAutoCad = new List<FileToProject>();
+
+        private List<FileToProject> AllFilesToProject { get; set; } = new List<FileToProject>();
+        private List<SectionToProject> AllSectionsToProject { get; set; } = new List<SectionToProject>();
 
         public FilesToPDFSort(List<SectionToProject> sectionsToProject)
         {
-            InfoOfProcess.TotalFormsFiles = sectionsToProject.SelectMany(section => section.FilesToPDF)
+            InfoOfProcess infoOfProcess = InfoOfProcess.GetInstance();
+            infoOfProcess.TotalFormsFiles = sectionsToProject.SelectMany(section => section.FilesToProject)
                 .Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF).ToList().Count();
-            InfoOfProcess.TotalFormsSections = sectionsToProject.Count();
+            infoOfProcess.TotalFormsSections = sectionsToProject.Count();
 
-            FilesToPDFfromPDF = sectionsToProject.SelectMany(section => section.FilesToPDF).Where(file => file.MethodPDFFile == MethodPDFFile.PDF).ToList();
-            FilesToPDFfromWord = sectionsToProject.SelectMany(section => section.FilesToPDF).Where(file => file.MethodPDFFile == MethodPDFFile.Word).ToList();
-            FilesToPDFfromExcel = sectionsToProject.SelectMany(section => section.FilesToPDF).Where(file => file.MethodPDFFile == MethodPDFFile.Excel).ToList();
-            FilesToPDFfromKompas = sectionsToProject.SelectMany(section => section.FilesToPDF).Where(file => file.MethodPDFFile == MethodPDFFile.Kompas).ToList();
-            FilesToPDFfromAutoCad = sectionsToProject.SelectMany(section => section.FilesToPDF).Where(file => file.MethodPDFFile == MethodPDFFile.AutoCad).ToList();
+            FilesToProjectfromPDF = sectionsToProject.SelectMany(section => section.FilesToProject).Where(file => file.MethodPDFFile == MethodPDFFile.PDF).ToList();
+            FilesToProjectfromWord = sectionsToProject.SelectMany(section => section.FilesToProject).Where(file => file.MethodPDFFile == MethodPDFFile.Word).ToList();
+            FilesToProjectfromExcel = sectionsToProject.SelectMany(section => section.FilesToProject).Where(file => file.MethodPDFFile == MethodPDFFile.Excel).ToList();
+            FilesToProjectfromKompas = sectionsToProject.SelectMany(section => section.FilesToProject).Where(file => file.MethodPDFFile == MethodPDFFile.Kompas).ToList();
+            FilesToProjectfromAutoCad = sectionsToProject.SelectMany(section => section.FilesToProject).Where(file => file.MethodPDFFile == MethodPDFFile.AutoCad).ToList();
+
+            AllFilesToProject = sectionsToProject.SelectMany(section => section.FilesToProject).ToList();
+            AllSectionsToProject = sectionsToProject;
         }
         public FilesToPDFSort(SectionToProject sectionToProject)
         {
-            InfoOfProcess.TotalFormsFiles = sectionToProject.FilesToPDF.Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF).ToList().Count();
-            InfoOfProcess.TotalFormsSections = 1;
+            InfoOfProcess infoOfProcess = InfoOfProcess.GetInstance();
+            infoOfProcess.TotalFormsFiles = sectionToProject.FilesToProject.Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF).ToList().Count();
+            infoOfProcess.TotalFormsSections = 1;
 
-            FilesToPDFfromPDF = sectionToProject.FilesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.PDF).ToList();
-            FilesToPDFfromWord = sectionToProject.FilesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.Word).ToList();
-            FilesToPDFfromExcel = sectionToProject.FilesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.Excel).ToList();
-            FilesToPDFfromKompas = sectionToProject.FilesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.Kompas).ToList();
-            FilesToPDFfromAutoCad = sectionToProject.FilesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.AutoCad).ToList();
+            FilesToProjectfromPDF = sectionToProject.FilesToProject.Where(file => file.MethodPDFFile == MethodPDFFile.PDF).ToList();
+            FilesToProjectfromWord = sectionToProject.FilesToProject.Where(file => file.MethodPDFFile == MethodPDFFile.Word).ToList();
+            FilesToProjectfromExcel = sectionToProject.FilesToProject.Where(file => file.MethodPDFFile == MethodPDFFile.Excel).ToList();
+            FilesToProjectfromKompas = sectionToProject.FilesToProject.Where(file => file.MethodPDFFile == MethodPDFFile.Kompas).ToList();
+            FilesToProjectfromAutoCad = sectionToProject.FilesToProject.Where(file => file.MethodPDFFile == MethodPDFFile.AutoCad).ToList();
+
+            AllFilesToProject = sectionToProject.FilesToProject;
+            AllSectionsToProject.Add(sectionToProject);
         }
         public FilesToPDFSort(List<FileToProject> filesToPDF)
         {
-            InfoOfProcess.TotalFormsFiles = filesToPDF.Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF).Count();
+            InfoOfProcess infoOfProcess = InfoOfProcess.GetInstance();
+            infoOfProcess.TotalFormsFiles = filesToPDF.Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF).Count();
 
-            FilesToPDFfromPDF = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.PDF).ToList();
-            FilesToPDFfromWord = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.Word).ToList();
-            FilesToPDFfromExcel = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.Excel).ToList();
-            FilesToPDFfromKompas = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.Kompas).ToList();
-            FilesToPDFfromAutoCad = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.AutoCad).ToList();
+            FilesToProjectfromPDF = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.PDF).ToList();
+            FilesToProjectfromWord = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.Word).ToList();
+            FilesToProjectfromExcel = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.Excel).ToList();
+            FilesToProjectfromKompas = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.Kompas).ToList();
+            FilesToProjectfromAutoCad = filesToPDF.Where(file => file.MethodPDFFile == MethodPDFFile.AutoCad).ToList();
+
+            AllFilesToProject = filesToPDF;
+            AllSectionsToProject = null;
         }
+
+        //private List<FileToProject> GetAllFilesToProject()
+        //{
+        //    List<FileToProject> filesToProject = new List<FileToProject>();
+        //    filesToProject.AddRange(this.FilesToProjectfromAutoCad);
+        //    filesToProject.AddRange(this.FilesToProjectfromExcel);
+        //    filesToProject.AddRange(this.FilesToProjectfromKompas);
+        //    filesToProject.AddRange(this.FilesToProjectfromPDF);
+        //    filesToProject.AddRange(this.FilesToProjectfromWord);
+        //    return filesToProject;
+        //}
 
         [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
         protected FilesToPDFSort(SerializationInfo info, StreamingContext context)

@@ -9,7 +9,7 @@ using System.Text;
 namespace ObjectsProjectServer
 {
     [Serializable]
-    public class FileSection : ISerializable, IObjectsToProjectContainer
+    public class FileSection : ISerializable, IFilesToProjectContainer
     {
         private string name;
         public string Name
@@ -35,7 +35,7 @@ namespace ObjectsProjectServer
         }
         public FilesToPDFSort GetFilesToPDFSort()
         {
-            FilesToPDFSort filesToPDFSort = new FilesToPDFSort(FileToProject.GetFilesToPDFToPages(this));
+            FilesToPDFSort filesToPDFSort = new FilesToPDFSort(FileToProject.GetFilesToProjectToPages(this));
             return filesToPDFSort;
         }
     }

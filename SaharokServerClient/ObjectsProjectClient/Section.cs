@@ -29,7 +29,6 @@ namespace ObjectsProjectClient
         public string Path { get; set; }
         public TypeDocumentation TypeDocumentation { get; set; }
         public ObservableCollection<FileSection> Files { get; set; }
-        //public List<FileSection> Files { get; set; }
 
         public Section(string path, string name, TypeDocumentation parent)
         {
@@ -102,8 +101,14 @@ namespace ObjectsProjectClient
                 {
                     renameElement.Name = newName;
                     renameElement.Path = newPath;
+                    renameElement.MethodPDFFile = TypeFile.ChooseMethodPDFFile(renameElement);
                 });
             }
+        }
+
+        public FileSection GetFile(string path)
+        {
+            return Files.Where(s => path.StartsWith(s.Path)).FirstOrDefault();
         }
 
         protected async void LoadFilesWithRetries()

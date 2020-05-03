@@ -804,6 +804,7 @@
                                             <ColumnDefinition Width="36"/>
                                             <ColumnDefinition Width="Auto"/>
                                             <ColumnDefinition />
+                                            <ColumnDefinition />
                                             <ColumnDefinition Width="34"/>
                                             <ColumnDefinition Width="34"/>
                                             <ColumnDefinition Width="34"/>
@@ -836,12 +837,12 @@
                                                 <Separator/>
                                                 <MenuItem Header="Выход" Click="CloseButtonClick"/>
                                             </MenuItem>
-                                            <MenuItem Header="Проект">
+                                            <!--<MenuItem Header="Проект">
                                                 <MenuItem Header="Добавить тип документации" IsEnabled="False"/>
                                                 <MenuItem Header="Добавить секцию" IsEnabled="False"/>
                                                 <MenuItem Header="Добавить файл" IsEnabled="False"/>
                                                 <MenuItem Header="Добавить другое" IsEnabled="False"/>
-                                            </MenuItem>
+                                            </MenuItem>-->
 
                                             <MenuItem Header="Справка" IsEnabled="False">
                                             </MenuItem>
@@ -868,22 +869,73 @@
                                         <Button
                                             Style="{StaticResource TitleButton}"
                                             Grid.Column="2"
-                                            Margin="100,0,0,0"
+                                            Margin="20,0,0,0"
                                             VerticalAlignment="Center"
                                             HorizontalAlignment="Left"
                                             >
                                             <Button.Content>
                                                 <Grid>
                                                     <TextBlock
-                                                Margin="7,4,7,4"
-                                                Text="{Binding Path=Title, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}"
-                                                />
+                                                        Margin="7,4,7,4"
+                                                        Text="{Binding Path=Title, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                                    />
                                                 </Grid>
                                             </Button.Content>
                                         </Button>
+                                        <Grid Height="Auto" 
+                                                Width="Auto"
+                                                Grid.Column="3"
+                                                HorizontalAlignment="Right">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Ellipse
+                                                Margin="0,0,0,3"
+                                                Grid.Column="0"
+                                                Width="15"
+                                                Height="15"
+                                                Fill="Lime"
+                                                Stroke ="#FF131212"
+                                                StrokeThickness="2" 
+                                                HorizontalAlignment="Left"
+                                                VerticalAlignment="Center"
+                                                >
+                                                <Ellipse.Effect>
+                                                    <!--<DropShadowEffect 
+                                                        BlurRadius ="1"
+                                                        Color="Black"
+                                                        ShadowDepth="1"
+                                                        RenderingBias="Quality"
+                                                        />-->
+                                                    <BlurEffect Radius="2"></BlurEffect>
+                                                </Ellipse.Effect>
+                                            </Ellipse>
+                                            <Ellipse
+                                                Margin="15,0,15,3"
+                                                Grid.Column="1"
+                                                Width="15"
+                                                Height="15"
+                                                Fill="Lime"
+                                                Stroke ="#FF131212"
+                                                StrokeThickness="2" 
+                                                HorizontalAlignment="Right"
+                                                VerticalAlignment="Center"
+                                                >
+                                                <Ellipse.Effect>
+                                                    <!--<DropShadowEffect 
+                                                        BlurRadius ="1"
+                                                        Color="Black"
+                                                        ShadowDepth="1"
+                                                        RenderingBias="Quality"
+                                                        />-->
+                                                    <BlurEffect Radius="2"></BlurEffect>
+                                                </Ellipse.Effect>
+                                            </Ellipse>
+                                        </Grid>
                                         <Button
                                             x:Name="MinButton" 
-                                            Grid.Column="3"
+                                            Grid.Column="4"
                                             VerticalAlignment="Top"
                                             Width="34"
                                             Height="26"
@@ -901,7 +953,7 @@
                                             </Grid>
                                         </Button>
                                         <Button
-                                            Grid.Column="4"
+                                            Grid.Column="5"
                                             x:Name="MaxButton" 
                                             VerticalAlignment="Top"
                                             Width="34"
@@ -921,7 +973,7 @@
                                             </Grid>
                                         </Button>
                                         <Button
-                                            Grid.Column="5"
+                                            Grid.Column="6"
                                             x:Name="CloseButton" 
                                             VerticalAlignment="Top"
                                             Width="34"

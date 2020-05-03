@@ -7,6 +7,7 @@ using System.Runtime.Serialization;
 
 namespace ObjectsProjectServer
 {
+    [Serializable]
     public class FileToProject : ISerializable
     {
         public string Path;
@@ -25,7 +26,7 @@ namespace ObjectsProjectServer
             MethodPDFFile = methodPDFFile;
         }
 
-        public static List<FileToProject> GetFilesToPDFToPages(FileSection file)
+        public static List<FileToProject> GetFilesToProjectToPages(FileSection file)
         {
             string nameDirFileToPDFToPages = "PDF постранично";
             Section section = file.Section;

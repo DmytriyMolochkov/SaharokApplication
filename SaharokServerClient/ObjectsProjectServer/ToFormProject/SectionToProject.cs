@@ -7,11 +7,12 @@ using System.Runtime.Serialization;
 
 namespace ObjectsProjectServer
 {
+    [Serializable]
     public class SectionToProject : ISerializable
     {
         public string Path;
         public Dictionary<string, MethodFormFile> OutputSectionPaths;
-        public List<FileToProject> FilesToPDF;
+        public List<FileToProject> FilesToProject;
         public bool IsDone;
         public SectionToProject(string SectionPath, Dictionary<string, MethodFormFile> outputSectionPaths, List<FileToProject> filesToPDF)
         {
@@ -19,7 +20,7 @@ namespace ObjectsProjectServer
             OutputSectionPaths = outputSectionPaths;
             filesToPDF.ForEach(file => file.SectionToProject = this);
             IsDone = false;
-            FilesToPDF = filesToPDF;
+            FilesToProject = filesToPDF;
         }
 
         public static List<SectionToProject> GetSections(Project project)
