@@ -154,40 +154,20 @@ namespace Saharok.Model
             }
         }
 
-        public static void CreateProject(Project project)
+        public static void CreateProject(object objectsToProject, ClientObject clientObject )
         {
-            ClientObject.SendMessage(project);
-            FilesToPDFSort filesToPDFSort = ClientObject.ReceiveMessage();
-            filesToPDFSort.CheckFilesToPDFSortToErrors();
-            DoPDFFileUsingApps(filesToPDFSort);
-            CheckSectionsIsDone(filesToPDFSort);
-        }
-        public static void CreateProject(TypeDocumentation typeDocumentation)
-        {
-            ClientObject.SendMessage(typeDocumentation);
-            ClientObject.SendMessage(typeDocumentation);
-            FilesToPDFSort filesToPDFSort = ClientObject.ReceiveMessage();
-            filesToPDFSort.CheckFilesToPDFSortToErrors();
-            DoPDFFileUsingApps(filesToPDFSort);
-            CheckSectionsIsDone(filesToPDFSort);
-        }
-        public static void CreateProject(ObjectsProjectClient.Section section)
-        {
-            ClientObject.SendMessage(section);
-            ClientObject.SendMessage(section);
-            FilesToPDFSort filesToPDFSort = ClientObject.ReceiveMessage();
-            filesToPDFSort.CheckFilesToPDFSortToErrors();
-            DoPDFFileUsingApps(filesToPDFSort);
-            CheckSectionsIsDone(filesToPDFSort);
-        }
-        public static void CreateProject(FileSection file)
-        {
-            ClientObject.SendMessage(file);
-            ClientObject.SendMessage(file);
-            FilesToPDFSort filesToPDFSort = ClientObject.ReceiveMessage();
-            filesToPDFSort.CheckFilesToPDFSortToErrors();
-            DoPDFFileUsingApps(filesToPDFSort);
-            CheckSectionsIsDone(filesToPDFSort);
+            try
+            {
+                clientObject.SendMessage(objectsToProject);
+                FilesToPDFSort filesToPDFSort = clientObject.ReceiveMessage();
+                filesToPDFSort.CheckFilesToPDFSortToErrors();
+                DoPDFFileUsingApps(filesToPDFSort);
+                CheckSectionsIsDone(filesToPDFSort);
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
         }
 
         public static bool CheckSectionReadiness(FileToProject fileToProject)
@@ -206,7 +186,10 @@ namespace Saharok.Model
         public static void CheckSectionsIsDone(FilesToPDFSort filesToPDFSort)
         {
             List<System.Threading.Tasks.Task> tasks = new List<System.Threading.Tasks.Task>();
-            filesToPDFSort.GetAllSectionsToProject().Where(section => section.IsDone == false).ToList().ForEach(section =>
+            filesToPDFSort.GetAllSectionsToProject()?
+                .Where(section => section.FilesToProject.Count > 0)
+                .Where(section => section.IsDone == false).ToList()
+                .ForEach(section =>
             {
                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                 {
@@ -217,7 +200,7 @@ namespace Saharok.Model
                         section.FilesToProject
                         .Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF)
                         .Where(file => file.IsDone == false)
-                        .Select(file => file.Path)) + Environment.NewLine);
+                        .Select(file => file.Path)));
                 }));
             });
             System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
@@ -379,11 +362,19 @@ namespace Saharok.Model
                         });
                 }));
 
+
+                var emptySectionsFromFile = new List<string>();
+                filesToPDFSort.GetAllSectionsToProject()?
+                    .Where(section => section.FilesToProject.Count == 0)
+                    .ToList()
+                    .ForEach(section => emptySectionsFromFile.Add(section.Path));
+
                 var emptySectionsFromPDF = new List<string>();
-                filesToPDFSort.GetAllSectionsToProject()
+                filesToPDFSort.GetAllSectionsToProject()?
+                    .Where(section => section.FilesToProject.Count > 0)
                     .Where(section => section.FilesToProject.All(file => file.MethodPDFFile == MethodPDFFile.DontPDF))
                     .ToList()
-                    .ForEach(section => 
+                    .ForEach(section =>
                     {
                         emptySectionsFromPDF.Add(section.Path);
                         tasks.Add(System.Threading.Tasks.Task.Run(() => FormSection(section)));
@@ -392,22 +383,44 @@ namespace Saharok.Model
                 System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
                 System.Threading.Tasks.Task.WaitAll(localTasks.ToArray());
 
+                List<string> messeges = new List<string>();
+
+
                 if (emptySectionsFromPDF.Count == 1)
                 {
-                    System.Windows.MessageBox.Show($"Обратите внивание, что следующий раздел не содержат файлов для PDF альбома: {Environment.NewLine}      " +
+                    messeges.Add($"Обратите внивание, что следующий раздел не содержит файлов для PDF альбома:{Environment.NewLine}{Environment.NewLine}      " +
                         String.Join($"{Environment.NewLine}      ", emptySectionsFromPDF) +
                         $"{Environment.NewLine}" +
                         $"{Environment.NewLine}      " +
-                        "поэтому для него был сформирован только ZIP архив.");
+                        $"поэтому для него был сформирован только ZIP архив.");
                 }
                 else if (emptySectionsFromPDF.Count > 1)
                 {
-                    System.Windows.MessageBox.Show($"Обратите внивание, что следующие разделы не содержат файлов для PDF альбома: {Environment.NewLine}      " +
-                    String.Join($"{Environment.NewLine}      ", emptySectionsFromPDF) +
-                    $"{Environment.NewLine}" +
-                    $"{Environment.NewLine}      " +
-                    "поэтому для них были сформированы только ZIP архивы.");
+                    messeges.Add($"Обратите внивание, что следующие разделы не содержат файлов для PDF альбома:{Environment.NewLine}{Environment.NewLine}      " +
+                        String.Join($"{Environment.NewLine}      ", emptySectionsFromPDF) +
+                        $"{Environment.NewLine}" +
+                        $"{Environment.NewLine}      " +
+                        $"поэтому для них были сформированы только ZIP архивы.");
                 }
+
+                if (emptySectionsFromFile.Count == 1)
+                {
+                    messeges.Add($"Обратите внивание, что следующий раздел не содержит файлов для проекта:{Environment.NewLine}{Environment.NewLine}      " +
+                        String.Join($"{Environment.NewLine}      ", emptySectionsFromFile) +
+                        $"{Environment.NewLine}" +
+                        $"{Environment.NewLine}      " +
+                        $"поэтому он не был включён в проект.");
+                }
+                else if (emptySectionsFromFile.Count > 1)
+                {
+                    messeges.Add($"Обратите внивание, что следующие разделы не содержат файлов для проекта:{Environment.NewLine}{Environment.NewLine}      " +
+                        String.Join($"{Environment.NewLine}      ", emptySectionsFromFile) +
+                        $"{Environment.NewLine}" +
+                        $"{Environment.NewLine}      " +
+                        $"поэтому они не были включены в проект."); ;
+                }
+                if (messeges.Count > 0)
+                    System.Windows.MessageBox.Show(String.Join($"{Environment.NewLine}{Environment.NewLine}", messeges));
             }
             catch (AggregateException ae)
             {
@@ -427,7 +440,7 @@ namespace Saharok.Model
             }
             catch (Exception ex)
             {
-                throw new Exception($"При копировании файла {fileName} произошла ошибка: {Environment.NewLine} {ex.Message}.{Environment.NewLine}"
+                throw new Exception($"При копировании файла {fileName}{Environment.NewLine}произошла ошибка: {Environment.NewLine} {ex.Message}."
                     );
             }
         }
@@ -457,7 +470,7 @@ namespace Saharok.Model
             catch (Exception ex)
             {
                 Apps.QuitWord(ref word);
-                throw new Exception($"При формировании файла PDF {fileName} Word'ом произошла ошибка: {Environment.NewLine} {ex.Message}.{Environment.NewLine}");
+                throw new Exception($"При формировании файла PDF {fileName}{Environment.NewLine}произошла ошибка: {Environment.NewLine} {ex.Message}.");
             }
         }
 
@@ -479,7 +492,7 @@ namespace Saharok.Model
             catch (Exception ex)
             {
                 Apps.QuitExcel(ref excel);
-                throw new Exception($"При формировании файла PDF {fileName} Excel'ем произошла ошибка: {Environment.NewLine} {ex.Message}.{Environment.NewLine}");
+                throw new Exception($"При формировании файла PDF {fileName}{Environment.NewLine}произошла ошибка: {Environment.NewLine} {ex.Message}.");
             }
         }
 
@@ -497,7 +510,7 @@ namespace Saharok.Model
             catch (Exception ex)
             {
                 Apps.QuitKompas(ref kompas);
-                throw new Exception($"При формировании файла PDF {fileName} Kompas'ом произошла ошибка: {Environment.NewLine} {ex.Message}.{Environment.NewLine}");
+                throw new Exception($"При формировании файла PDF {fileName}{Environment.NewLine}произошла ошибка: {Environment.NewLine} {ex.Message}.");
             }
         }
 
@@ -547,6 +560,7 @@ namespace Saharok.Model
             List<System.Threading.Tasks.Task> tasks = new List<System.Threading.Tasks.Task>();
             foreach (var outputSectionPath in sectionToProject.OutputSectionPaths)
             {
+
                 switch (outputSectionPath.Value)
                 {
                     case MethodFormFile.ZIP:
@@ -588,8 +602,7 @@ namespace Saharok.Model
                                     + String.Join(
                                         $"{Environment.NewLine}      ", sectionToProject.FilesToProject
                                         .Where(file => !File.Exists(file.Path))
-                                        .Select(file => file.Path))
-                                    + Environment.NewLine);
+                                        .Select(file => file.Path)));
                             }
                             break;
                         }
@@ -628,16 +641,16 @@ namespace Saharok.Model
                                         $"{Environment.NewLine}      ", sectionToProject.FilesToProject
                                         .Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF)
                                         .Where(file => !File.Exists(file.OutputFileName))
-                                        .Select(file => file.OutputFileName))
-                                    + Environment.NewLine);
+                                        .Select(file => file.OutputFileName)));
                             }
                             break;
                         }
                     default:
                         {
-                            throw new Exception($"Неизвестный метод формирования секции: {outputSectionPath.Value}.{Environment.NewLine}");
+                            throw new Exception($"Неизвестный метод формирования секции: {outputSectionPath.Value}.");
                         }
                 }
+
             }
             System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
             sectionToProject.IsDone = true;

@@ -21,21 +21,29 @@ using System.Drawing;
 using System.Globalization;
 using System.Collections.Concurrent;
 using ObjectsProjectClient;
+using Saharok.Model.Client;
+using System.Runtime.Remoting.Channels;
+using Microsoft.Office.Interop.Word;
 
 namespace Saharok.ViewModel
 {
-    class MainWindowViewModel : BaseViewModel
+    class MainWindowViewModel : INotifyPropertyChanged
     {
         public MainWindowViewModel()
         {
+            ClientObject1 = new ClientObject("127.0.0.1", 8888, 1);
+            ClientObject1.PropertyChanged += (object sender, PropertyChangedEventArgs e) =>  IsServer1Connect = ClientObject1.IsServerConnect;
+            ClientObject1.Connect(true);
+            ClientObject2 = new ClientObject("127.0.0.1", 8887, 2);
+            ClientObject2.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer2Connect = ClientObject2.IsServerConnect;
+            ClientObject2.Connect(true);
             LoadProjectEvent += LoadProject;
             CloseProjectEvent += CloseProject;
             ProcessWorksEvent += ProcessWorks;
             ProcessOffEvent += ProcessOff;
             ExceptionEvent += ExceptionBorder;
             OnCloseProjectEvent();
-            InfoOfProcess infoOfProcess = InfoOfProcess.GetInstance();
-            InfoOfProcess.PropertyChanged += (object sender, PropertyChangedEventArgs e) => UpDateFormedProgressBarText();
+            InfoOfProcess.GetInstance().PropertyChanged += (object sender, PropertyChangedEventArgs e) => UpDateFormedProgressBarText();
             ClickLoadProject = new Command(arg => LoadProject(), arg => LoadProject_CanExecute());
             ClickCloseProject = new Command(arg => CloseProject(), arg => CloseProject_CanExecute());
             ClickOpenCreateProjectWindow = new Command(arg => OpenCreateProjectWindow(), arg => OpenCreateProjectWindow_CanExecute());
@@ -43,39 +51,18 @@ namespace Saharok.ViewModel
             ClickCreateProject = new Command(arg => CreateProject(PathProject, NameProject, CodeProject));
             ClickFormProject = new Command(arg =>
             {
-                if (arg == null)
-                {
-                    Thread threadFormOnServerProject = new Thread(() => FormOnServerProject());
-                    threadFormOnServerProject.Priority = ThreadPriority.Highest;
-                    threadFormOnServerProject.IsBackground = true;
-                    threadFormOnServerProject.Start();
-                }
-                if (arg is TypeDocumentation)
-                {
-                    Thread threadFormOnServerProject = new Thread(() => FormOnServerProject(arg as TypeDocumentation));
-                    threadFormOnServerProject.Priority = ThreadPriority.Highest;
-                    threadFormOnServerProject.IsBackground = true;
-                    threadFormOnServerProject.Start();
-                }
-                if (arg is Section)
-                {
-                    Thread threadFormOnServerProject = new Thread(() => FormOnServerProject(arg as Section));
-                    threadFormOnServerProject.Priority = ThreadPriority.Highest;
-                    threadFormOnServerProject.IsBackground = true;
-                    threadFormOnServerProject.Start();
-                }
-                if (arg is FileSection)
-                {
-                    Thread threadFormOnServerProject = new Thread(() => FormOnServerProject(arg as FileSection));
-                    threadFormOnServerProject.Priority = ThreadPriority.Highest;
-                    threadFormOnServerProject.IsBackground = true;
-                    threadFormOnServerProject.Start();
-                }
+                Thread threadFormOnServerProject = new Thread(() => FormOnServerProject(arg));
+                threadFormOnServerProject.Priority = ThreadPriority.Highest;
+                threadFormOnServerProject.IsBackground = true;
+                threadFormOnServerProject.Start();
             }
             , arg => FormOnServerProject_CanExecute());
         }
 
         private static object syncRoot = new Object();
+        ClientObject ClientObject1;
+        ClientObject ClientObject2;
+
 
         private Project myProject;
         public Project MyProject
@@ -87,6 +74,41 @@ namespace Saharok.ViewModel
                 OnPropertyChanged(nameof(MyProject));
             }
         }
+
+        private string nameProject;
+        public string NameProject
+        {
+            get => nameProject;
+            set
+            {
+                nameProject = value;
+                OnPropertyChanged(nameof(NameProject));
+            }
+        }
+
+        private string pathProject;
+        public string PathProject
+        {
+            get => pathProject;
+            set
+            {
+                pathProject = value;
+                OnPropertyChanged(nameof(PathProject));
+            }
+        }
+
+        private string codeProject;
+        public string CodeProject
+        {
+            get => codeProject;
+            set
+            {
+                codeProject = value;
+                OnPropertyChanged(nameof(CodeProject));
+            }
+        }
+
+        public bool IsProcessed { get; private set; } = false;
 
         private string statusBarColor;
         public string StatusBarColor
@@ -140,7 +162,38 @@ namespace Saharok.ViewModel
             }
         }
 
-        public bool IsProcessed { get; private set; } = false;
+        private bool isServer1Connect;
+        public bool IsServer1Connect
+        {
+            get => isServer1Connect;
+            set
+            {
+                isServer1Connect = value;
+                OnPropertyChanged(nameof(IsServer1Connect));
+            }
+        }
+
+        private bool isServer2Connect;
+        public bool IsServer2Connect
+        {
+            get => isServer2Connect;
+            set
+            {
+                isServer2Connect = value;
+                OnPropertyChanged(nameof(IsServer2Connect));
+            }
+        }
+
+        public ICommand ClickLoadProject { get; set; }
+        public ICommand ClickCloseProject { get; set; }
+        public ICommand ClickOpenCreateProjectWindow { get; set; }
+        public ICommand ClickChooseFolderOpenFileDialog { get; set; }
+        public ICommand ClickCreateProject { get; set; }
+        public ICommand ClickFormProject { get; set; }
+        public ICommand ClickCombinePDF { get; set; }
+        public ICommand ClickFormOnServerTypeDocumentation { get; set; }
+        public ICommand ClickFormOnServerSection { get; set; }
+        public ICommand ClickFormPDFToPagesFile { get; set; }
 
         public void LoadProject()
         {
@@ -213,45 +266,20 @@ namespace Saharok.ViewModel
             createNewProjectWindow.Show();
         }
 
+        private void CreateProject(string pathProject, string nameProject, string codeProject)
+        {
+
+            CreateProjectClass.CreateProjectPath(pathProject, nameProject, codeProject);
+            LoadProject(Path.Combine(pathProject, nameProject, nameProject + ".srk"));
+            createNewProjectWindow.Close();
+        }
+
         private bool OpenCreateProjectWindow_CanExecute()
         {
             if (MyProject != null || IsProcessed)
                 return false;
             else
                 return true;
-        }
-
-        private string nameProject;
-        public string NameProject
-        {
-            get => nameProject;
-            set
-            {
-                nameProject = value;
-                OnPropertyChanged(nameof(NameProject));
-            }
-        }
-
-        private string pathProject;
-        public string PathProject
-        {
-            get => pathProject;
-            set
-            {
-                pathProject = value;
-                OnPropertyChanged(nameof(PathProject));
-            }
-        }
-
-        private string codeProject;
-        public string CodeProject
-        {
-            get => codeProject;
-            set
-            {
-                codeProject = value;
-                OnPropertyChanged(nameof(CodeProject));
-            }
         }
 
         private void ChooseFolderOpenFileDialog()
@@ -266,152 +294,51 @@ namespace Saharok.ViewModel
             }
         }
 
-        private void CreateProject(string pathProject, string nameProject, string codeProject)
-        {
-
-            CreateProjectClass.CreateProjectPath(pathProject, nameProject, codeProject);
-            LoadProject(Path.Combine(pathProject, nameProject, nameProject + ".srk"));
-            createNewProjectWindow.Close();
-        }
-
-        private void ErrorHandling(AggregateException ae)
-        {
-            List<string> messeges = new List<string>();
-            foreach (var ex in ae.InnerExceptions)
-            {
-                if (ex is AggregateException)
-                {
-                    foreach (var e in ((AggregateException)ex).InnerExceptions)
-                    {
-                        messeges.Add(e.Message);
-                    }
-                }
-                else
-                {
-                    messeges.Add(ex.Message);
-                }
-            }
-            //System.Windows.MessageBox.Show($"Во время работы программы произошли следующие ошибки:{Environment.NewLine}" +
-            //    $"{Environment.NewLine}      " +
-            //    String.Join($"{Environment.NewLine}      ", messeges), $"Упс... {GetRandomSmile()} что - то пошло не так    ");
-            System.Windows.MessageBox.Show(String.Join($"{Environment.NewLine}", messeges), $"Упс... {GetRandomSmile()} что - то пошло не так    ");
-            OnExceptionEvent();
-        }
-
-        static Random rnd = new Random();
-        private static string GetRandomSmile()
-        {
-            string[] smiles = {
-                @"¯\_(ツ)_ /¯",
-
-                @"̿ ̿ ̿ ̿ ̿'̿'\̵͇̿̿\з=(͠° ͟ʖ ͡°)=ε/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿ ̿ ",
-
-                @"(╯°□°)╯┻┻",
-
-                @"(╯°□°）╯︵(.o.)",
-
-                @"╰(°益°)╯",
-
-                @"(˘▽˘)っ♨",
-
-                @"｀、ヽ｀ヽ｀、ヽ(ノ＞＜)ノ ｀、ヽ｀☂ヽ｀、ヽ",
-
-                @"(ง ͠° ͟ل͜ ͡°)ง",
-
-                @"◉_◉",
-
-                @"(☞ﾟヮﾟ)☞",
-
-                @"༼ຈل͜ຈ༽ﾉ",
-
-                @"†(•̪●)†",
-
-                @"(╬ Ò﹏Ó)",
-
-                @"٩(╬ʘ益ʘ╬)۶",
-
-                @"(ิ_ิ)?",
-
-                @"(҂｀ﾛ´)︻/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿ ̿ ",
-
-                @"(╯°益°)╯彡┻━┻",
-
-                @"┻━┻ ︵ヽ(`Д´)ﾉ︵ ┻━┻",
-
-                @"╚(ಠ_ಠ)=┐",
-
-                @"(⌐■_■)>¸,ø¤º°`°º¤ø,¸¸",
-
-                @"(ಥ﹏ಥ)",
-
-                @"＼(º □ º l|l)/",
-
-                @"(╥﹏╥)"};
-
-            return smiles[rnd.Next(smiles.Length)];
-        }
-
-        private void FormOnServerProject()
+        private void FormOnServerProject(object objectToProject)
         {
             try
             {
                 OnProcessWorksEvent();
 
-                List<Task> tasks1 = new List<Task>();
-                tasks1.Add(Task.Run(() =>
+                if (objectToProject is Project)
                 {
-                    DirectoryMethods.ClearFolder(Path.Combine(MyProject.Path, "Готовый проект\\На сервер"));
-                    DirectoryMethods.ClearFolder(Path.Combine(MyProject.Path, "Готовый проект\\На отправку"));
-                }));
-                tasks1.Add(Task.Run(() => DirectoryMethods.ClearFolder(Path.Combine(MyProject.Path, "PDF постранично"))));
+                    List<System.Threading.Tasks.Task> tasks = new List<System.Threading.Tasks.Task>();
+                    tasks.Add(System.Threading.Tasks.Task.Run(() =>
+                    {
+                        DirectoryMethods.ClearFolder(Path.Combine(MyProject.Path, "Готовый проект\\На сервер"));
+                        DirectoryMethods.ClearFolder(Path.Combine(MyProject.Path, "Готовый проект\\На отправку"));
+                    }));
+                    tasks.Add(System.Threading.Tasks.Task.Run(() => DirectoryMethods.ClearFolder(Path.Combine(MyProject.Path, "PDF постранично"))));
+
+                    System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
+                }
 
                 try
                 {
-                    Task.WaitAll(tasks1.ToArray());
+                    FormProject.CreateProject(objectToProject, ClientObject1);
                 }
-                catch (AggregateException ae)
+                catch(ServerException ex)
                 {
-                    throw ae;
+                    try
+                    {
+                        FormProject.CreateProject(objectToProject, ClientObject2);
+                    }
+                    catch (ServerException e)
+                    {
+                        throw new AggregateException(new Exception[] { ex, e });
+                    }
                 }
 
-                FormProject.CreateProject(MyProject);
-
                 OnProcessOffEvent();
             }
-            catch (AggregateException ae)
+            catch (Exception ex)
             {
-                ErrorHandling(ae);
+                ErrorHandling(ex);
             }
-        }
-
-        private void FormOnServerProject(TypeDocumentation typeDocumentation)
-        {
-            try
+            finally
             {
-                OnProcessWorksEvent();
-
-                FormProject.CreateProject(typeDocumentation);
-
-                OnProcessOffEvent();
-            }
-            catch (AggregateException ae)
-            {
-                ErrorHandling(ae);
-            }
-        }
-        private void FormOnServerProject(Section section)
-        {
-            try
-            {
-                OnProcessWorksEvent();
-
-                FormProject.CreateProject(section);
-
-                OnProcessOffEvent();
-            }
-            catch (AggregateException ae)
-            {
-                ErrorHandling(ae);
+                InfoOfProcess.RefreshInstance();
+                InfoOfProcess.GetInstance().PropertyChanged += (object sender, PropertyChangedEventArgs e) => UpDateFormedProgressBarText();
             }
         }
 
@@ -422,62 +349,6 @@ namespace Saharok.ViewModel
             else
                 return true;
         }
-
-        private void FormOnServerProject(FileSection fileSection)
-        {
-            try
-            {
-                OnProcessWorksEvent();
-                FormProject.CreateProject(fileSection);
-                OnProcessOffEvent();
-            }
-            catch (AggregateException ae)
-            {
-                ErrorHandling(ae);
-            }
-        }
-
-        //private bool FormPDFToPagesFile_CanExecute()
-        //{
-        //    if (MyProject == null || IsProcessed)
-        //        return false;
-        //    else
-        //        return true;
-        //}
-
-        #region Commands
-
-        /// <summary>
-        /// Get or set ClickCommand.
-        /// </summary>
-        public ICommand ClickLoadProject { get; set; }
-        public ICommand ClickCloseProject { get; set; }
-        public ICommand ClickOpenCreateProjectWindow { get; set; }
-        public ICommand ClickChooseFolderOpenFileDialog { get; set; }
-        public ICommand ClickCreateProject { get; set; }
-        public ICommand ClickFormProject { get; set; }
-        public ICommand ClickCombinePDF { get; set; }
-        public ICommand ClickFormOnServerTypeDocumentation { get; set; }
-        public ICommand ClickFormOnServerSection { get; set; }
-        public ICommand ClickFormPDFToPagesFile { get; set; }
-
-
-
-        public ICommand ClickMethod { get; set; }
-
-        #endregion
-
-        #region Methods
-
-        /// <summary>
-        /// Click method.
-        /// </summary>
-        private void Method()
-        {
-
-        }
-
-        #endregion
 
         public event EventHandler LoadProjectEvent;
         public event EventHandler CloseProjectEvent;
@@ -530,26 +401,27 @@ namespace Saharok.ViewModel
         public void UpDateFormedProgressBarText()
         {
             InfoOfProcess infoOfProcess = InfoOfProcess.GetInstance();
-            lock (syncRoot)
-            {
-                FormedFilesText = "Сконвертировано PDF файлов: " + infoOfProcess.CompleteFormsFiles + " / " + infoOfProcess.TotalFormsFiles;
-                FormedSectionsText = "Сформировано разделов: " + infoOfProcess.CompleteFormsSections + " / " + infoOfProcess.TotalFormsSections;
-            }
-
+            FormedFilesText = "Сконвертировано PDF файлов: " + infoOfProcess.CompleteFormsFiles + " / " + infoOfProcess.TotalFormsFiles;
+            FormedSectionsText = "Сформировано разделов: " + infoOfProcess.CompleteFormsSections + " / " + infoOfProcess.TotalFormsSections;
         }
 
         void ProcessWorks(object source, EventArgs arg)
         {
-            Task.Run(() => TimerAnimation());
-            Task.Run(() => BootAnimation());
+            IsProcessed = true;
+            TimerAnimation();
+            BootAnimation();
             
             InfoOfProcess infoOfProcess = InfoOfProcess.GetInstance();
-            UpDateFormedProgressBarText();
+
             infoOfProcess.CompleteFormsFiles = 0;
             infoOfProcess.CompleteFormsSections = 0;
-            IsProcessed = true;
+            infoOfProcess.TotalFormsSections = 0;
+            infoOfProcess.TotalFormsFiles = 0;
+
+            UpDateFormedProgressBarText();
             StatusBarText = "Формируется проект";
             StatusBarColor = "ProcessWorks";
+            StatusBarTimerText = "00:00";
         }
 
         void ProcessOff(object source, EventArgs arg)
@@ -583,13 +455,15 @@ namespace Saharok.ViewModel
 
             while (IsProcessed)
             {
-                await Task.Delay(50);
+                await System.Threading.Tasks.Task.Delay(50);
                 if (!IsProcessed)
                 {
                     Timer.Enabled = false;
                 }
             }
             Timer.Enabled = false;
+
+
 
             void OnTimedEvent(Object source, System.Timers.ElapsedEventArgs e)
             {
@@ -618,9 +492,11 @@ namespace Saharok.ViewModel
 
             while (IsProcessed)
             {
-                await Task.Delay(50);
+                await System.Threading.Tasks.Task.Delay(50);
                 if (!IsProcessed)
+                {
                     Timer.Enabled = false;
+                }
             }
             Timer.Enabled = false;
 
@@ -628,6 +504,90 @@ namespace Saharok.ViewModel
             {
                 StatusBarTimerText = string.Format("{0:mm:ss}", ElapsedDateTime.AddSeconds(i++));
             }
+        }
+
+        private void ErrorHandling(Exception ex)
+        {
+            OnExceptionEvent();
+            IEnumerable<string> messages = GetErrorMessages(ex);
+
+            System.Windows.MessageBox.Show(String.Join($"{Environment.NewLine}{Environment.NewLine}", messages), $"Упс... {GetRandomSmile()} что - то пошло не так    ");
+        }
+        private IEnumerable<string> GetErrorMessages(Exception ex)
+        {
+            if (!(ex is AggregateException))
+                return new string[] { ex.Message };
+
+            List<string> messages = new List<string>();
+
+            foreach (var e in ((AggregateException)ex).InnerExceptions)
+            {
+                if(e is AggregateException)
+                    messages.AddRange(GetErrorMessages(e));
+                else
+                    messages.Add(e.Message);
+            }
+
+            return messages;
+        }
+
+        static Random rnd = new Random();
+        private static string GetRandomSmile()
+        {
+            return Smiles[rnd.Next(Smiles.Length)];
+        }
+        private static string[] Smiles = {
+            @"¯\_(ツ)_ /¯",
+
+            @"̿ ̿ ̿ ̿ ̿'̿'\̵͇̿̿\з=(͠° ͟ʖ ͡°)=ε/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿ ̿ ",
+
+            @"(╯°□°)╯┻┻",
+
+            @"(╯°□°）╯︵(.o.)",
+
+            @"╰(°益°)╯",
+
+            @"(˘▽˘)っ♨",
+
+            @"｀、ヽ｀ヽ｀、ヽ(ノ＞＜)ノ ｀、ヽ｀☂ヽ｀、ヽ",
+
+            @"(ง ͠° ͟ل͜ ͡°)ง",
+
+            @"◉_◉",
+
+            @"(☞ﾟヮﾟ)☞",
+
+            @"༼ຈل͜ຈ༽ﾉ",
+
+            @"†(•̪●)†",
+
+            @"(╬ Ò﹏Ó)",
+
+            @"٩(╬ʘ益ʘ╬)۶",
+
+            @"(ิ_ิ)?",
+
+            @"(҂｀ﾛ´)︻/̵͇̿̿/'̿̿ ̿ ̿ ̿ ̿ ̿ ",
+
+            @"(╯°益°)╯彡┻━┻",
+
+            @"┻━┻ ︵ヽ(`Д´)ﾉ︵ ┻━┻",
+
+            @"╚(ಠ_ಠ)=┐",
+
+            @"(⌐■_■)>¸,ø¤º°`°º¤ø,¸¸",
+
+            @"(ಥ﹏ಥ)",
+
+            @"＼(º □ º l|l)/",
+
+            @"(╥﹏╥)"};
+
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        protected virtual void OnPropertyChanged(string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

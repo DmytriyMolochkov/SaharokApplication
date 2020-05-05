@@ -20,6 +20,9 @@
     <SolidColorBrush x:Key="VS2012WindowStatusException" Color="Red" />
     <SolidColorBrush x:Key="VS2012WindowBorderBrushException" Color="Red" />
 
+    <SolidColorBrush x:Key="ServerConnect" Color="Lime" />
+    <SolidColorBrush x:Key="ServerDisconnect" Color="Red" />
+
     <!--Background-->
     <SolidColorBrush x:Key="Background" Color="#1C1C1C"/>
     <SolidColorBrush x:Key="LightBackground" Color="#2D2D30"/>
@@ -831,7 +834,7 @@
                                                 <MenuItem Header="Сохранить как..." IsEnabled="False"/>
                                                 <MenuItem Header="Сохранить все" IsEnabled="False"/>
                                                 <Separator/>
-                                                <MenuItem Header="Сформировать проект" Command="{Binding ClickFormProject}"/>
+                                                <MenuItem Header="Сформировать проект" CommandParameter="{Binding Path=MyProject}"  Command="{Binding ClickFormProject}"/>
                                                 <!--<MenuItem Header="Сформировать PDF" Command="{Binding ClickFormPDFProject}"/>
                                                 <MenuItem Header="Сформировать проект в письмо" IsEnabled="False"/>-->
                                                 <Separator/>
@@ -895,42 +898,53 @@
                                                 Grid.Column="0"
                                                 Width="15"
                                                 Height="15"
-                                                Fill="Lime"
                                                 Stroke ="#FF131212"
                                                 StrokeThickness="2" 
                                                 HorizontalAlignment="Left"
                                                 VerticalAlignment="Center"
+                                                Name="Server1"
                                                 >
                                                 <Ellipse.Effect>
-                                                    <!--<DropShadowEffect 
-                                                        BlurRadius ="1"
-                                                        Color="Black"
-                                                        ShadowDepth="1"
-                                                        RenderingBias="Quality"
-                                                        />-->
                                                     <BlurEffect Radius="2"></BlurEffect>
                                                 </Ellipse.Effect>
+                                                <Ellipse.Resources>
+                                                    <Style TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsServer1Connect}" Value="true">
+                                                                <Setter Property="Fill" Value="{StaticResource ServerConnect}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsServer1Connect}" Value="false">
+                                                                <Setter Property="Fill" Value="{StaticResource ServerDisconnect}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Resources>
                                             </Ellipse>
                                             <Ellipse
                                                 Margin="15,0,15,3"
                                                 Grid.Column="1"
                                                 Width="15"
                                                 Height="15"
-                                                Fill="Lime"
                                                 Stroke ="#FF131212"
                                                 StrokeThickness="2" 
                                                 HorizontalAlignment="Right"
                                                 VerticalAlignment="Center"
                                                 >
                                                 <Ellipse.Effect>
-                                                    <!--<DropShadowEffect 
-                                                        BlurRadius ="1"
-                                                        Color="Black"
-                                                        ShadowDepth="1"
-                                                        RenderingBias="Quality"
-                                                        />-->
                                                     <BlurEffect Radius="2"></BlurEffect>
                                                 </Ellipse.Effect>
+                                                <Ellipse.Resources>
+                                                    <Style TargetType="Ellipse">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsServer2Connect}" Value="true">
+                                                                <Setter Property="Fill" Value="{StaticResource ServerConnect}"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding IsServer2Connect}" Value="false">
+                                                                <Setter Property="Fill" Value="{StaticResource ServerDisconnect}"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Ellipse.Resources>
                                             </Ellipse>
                                         </Grid>
                                         <Button

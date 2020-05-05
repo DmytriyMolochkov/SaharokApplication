@@ -14,7 +14,6 @@ namespace Saharok
             typeName = typeName.Replace("Server", "Client");
             assemblyName = assemblyName.Replace("Server", "Client");
             typeToDeserialize = Type.GetType(String.Format($"{typeName}, {assemblyName}"));
-            //typeToDeserialize = Type.GetType(String.Format($"{abc}"));
             return typeToDeserialize;
         }
     }

@@ -170,6 +170,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Model\Client\ClientObject.cs" />
+    <Compile Include="Model\Client\EchoStream.cs" />
     <Compile Include="Model\Client\Type1ToType2DeserializationBinder.cs" />
     <Compile Include="Model\ConnectKompas.cs" />
     <Compile Include="Model\CreateProjectClass.cs" />
@@ -187,7 +188,6 @@
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
     <Compile Include="Styles\CustomizedWindow\VS2012WindowStyle.cs" />
-    <Compile Include="ViewModel\BaseMainWindowModel.cs" />
     <Compile Include="ViewModel\Command.cs" />
     <Compile Include="ViewModel\MainWindowViewModel.cs" />
     <Compile Include="View\CreateNewProjectWindow.xaml.cs">

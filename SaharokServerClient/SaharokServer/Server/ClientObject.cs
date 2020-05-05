@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
+using System.Threading;
 using ObjectsProjectServer;
 
 namespace SaharokServer
@@ -12,7 +13,7 @@ namespace SaharokServer
         protected internal string Id { get; private set; }
         protected internal NetworkStream Nstream { get; private set; }
         string userName;
-        TcpClient client;
+        public TcpClient client { get; set; }
         ServerObject server; // объект сервера
 
         public ClientObject(TcpClient tcpClient, ServerObject serverObject)
@@ -25,8 +26,8 @@ namespace SaharokServer
 
         public void Process()
         {
-            //try
-            //{
+            try
+            {
                 Nstream = client.GetStream();
                 // получаем имя пользователя
                 //string message = GetMessage();
@@ -41,10 +42,33 @@ namespace SaharokServer
                 {
                     //try
                     //{
-                        GetMessage();
-                        //message = String.Format("{0}: {1}", userName, message);
-                        //Console.WriteLine(message);
-                        //server.BroadcastMessage(message, this.Id);
+                    Console.WriteLine("Я сплю");
+                    Thread.Sleep(20000);
+                    Console.WriteLine("Я опять готов");
+                    BinaryFormatter formatter = new BinaryFormatter();
+                    formatter.Binder = new Type1ToType2DeserializationBinder();
+
+                    object data = null;
+                    do
+                    {
+                        data = formatter.Deserialize(Nstream);
+                    }
+                    while (Nstream.DataAvailable);
+
+                    FilesToPDFSort filesToPDFSort = null;
+                    if (data is IFilesToProjectContainer)
+                    {
+                        filesToPDFSort = ((IFilesToProjectContainer)data).GetFilesToPDFSort();
+                    }
+                    else
+                    {
+                        throw new Exception($"Полученный сервером класс не поддерживает интерфейс: {typeof(IFilesToProjectContainer).Name}.");
+                    }
+                    formatter.Serialize(Nstream, InfoOfProcess.GetInstance());
+                    formatter.Serialize(Nstream, filesToPDFSort);
+                    //message = String.Format("{0}: {1}", userName, message);
+                    //Console.WriteLine(message);
+                    //server.BroadcastMessage(message, this.Id);
                     //}
                     //catch (Exception ex)
                     //{
@@ -54,19 +78,16 @@ namespace SaharokServer
                     //    //break;
                     //    Console.WriteLine(ex.Message);
                     //}
+                    //Thread.Sleep(10000);
+                    //Console.WriteLine("Я опять готов");
                 }
-            //}
-            //catch (Exception ex)
-            //{
-            //    throw ex;
-            //    //Console.WriteLine(ex.Message);
-            //}
-            //finally
-            //{
-            //    // в случае выхода из цикла закрываем ресурсы
-            //    server.RemoveConnection(this.Id);
-            //    Close();
-            //}
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                server.RemoveConnection(this.Id);
+                Close();
+            }
         }
 
         // чтение входящего сообщения и преобразование в строку
@@ -76,10 +97,9 @@ namespace SaharokServer
             formatter.Binder = new Type1ToType2DeserializationBinder();
 
             object data = null;
-            Console.WriteLine("Начинаю десериализацию");
             do
             {
-                data = /*(Project)*/formatter.Deserialize(Nstream);
+                data = formatter.Deserialize(Nstream);
             }
             while (Nstream.DataAvailable);
 

@@ -11,7 +11,8 @@ namespace SaharokServer
 {
     public class ServerObject
     {
-        public TcpListener tcpListener; // сервер для прослушивания
+        public TcpListener tcpListener1; // сервер для прослушивания
+        public TcpListener tcpListener2; // сервер для прослушивания
         List<ClientObject> clients = new List<ClientObject>(); // все подключения
         protected internal void AddConnection(ClientObject clientObject)
         {
@@ -26,32 +27,54 @@ namespace SaharokServer
                 clients.Remove(client);
         }
         // прослушивание входящих подключений
-        protected internal async Task ListenAsync()
+        protected internal async Task ListenAsync1()
         {
-            //try
-            //{
-                tcpListener = new TcpListener(IPAddress.Any, 8888);
-                tcpListener.Start();
+            try
+            {
+                tcpListener1 = new TcpListener(IPAddress.Any, 8888);
+                tcpListener1.Start();
                 Console.WriteLine("Сервер запущен. Ожидание подключений...");
                 while (true)
                 {
                     TcpClient tcpClient = await Task.Run(
-                        () => tcpListener.AcceptTcpClientAsync());
+                        () => tcpListener1.AcceptTcpClientAsync());
                     ClientObject clientObject = new ClientObject(tcpClient, this);
-                    Thread clientThread = new Thread(new ThreadStart(clientObject.Process));
-                    clientThread.Start();
+                    Thread clientThread1 = new Thread(new ThreadStart(clientObject.Process));
+                    clientThread1.Start();
+                   
                 }
-            //}
-            //catch (Exception ex)
-            //{
-            //    //Console.WriteLine(ex.Message);
-            //    throw ex;
-            //    //Disconnect();
-            //}
-            //finally
-            //{
-            //    //tcpListener.Stop();
-            //}
+            }
+            catch (Exception ex)
+            {
+                Disconnect();
+                Console.WriteLine(ex.Message);
+                throw ex;
+            }
+        }
+
+        protected internal async Task ListenAsync2()
+        {
+            try
+            {
+                tcpListener2 = new TcpListener(IPAddress.Any, 8887);
+                tcpListener2.Start();
+                Console.WriteLine("Сервер запущен. Ожидание подключений...");
+                while (true)
+                {
+                    TcpClient tcpClient = await Task.Run(
+                        () => tcpListener2.AcceptTcpClientAsync());
+                    ClientObject clientObject = new ClientObject(tcpClient, this);
+                    Thread clientThread2 = new Thread(new ThreadStart(clientObject.Process));
+                    clientThread2.Start();
+
+                }
+            }
+            catch (Exception ex)
+            {
+                Disconnect();
+                Console.WriteLine(ex.Message);
+                throw ex;
+            }
         }
 
         // трансляция сообщения подключенным клиентам
@@ -69,7 +92,7 @@ namespace SaharokServer
         // отключение всех клиентов
         protected internal void Disconnect()
         {
-            tcpListener.Stop(); //остановка сервера
+            tcpListener1.Stop(); //остановка сервера
 
             for (int i = 0; i < clients.Count; i++)
             {

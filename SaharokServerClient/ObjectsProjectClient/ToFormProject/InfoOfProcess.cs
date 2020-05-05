@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace ObjectsProjectClient
 {
     [Serializable]
-    public class InfoOfProcess : ISerializable
+    public class InfoOfProcess : ISerializable, INotifyPropertyChanged
     {
         private static InfoOfProcess instance;
         private static object syncRoot = new Object();
@@ -32,7 +32,16 @@ namespace ObjectsProjectClient
         }
         public static void SetInstance(InfoOfProcess infoOfProcess)
         {
+            infoOfProcess.PropertyChanged = instance.PropertyChanged;
             instance = infoOfProcess;
+        }
+
+        public static void RefreshInstance()
+        {
+            //lock (syncRoot)
+            //{
+                instance = new InfoOfProcess();
+            //}
         }
 
         private int totalFormsFiles;
@@ -115,11 +124,11 @@ namespace ObjectsProjectClient
             }
         }
 
-        public static event PropertyChangedEventHandler PropertyChanged;
+        public event PropertyChangedEventHandler PropertyChanged;
 
-        private static void OnPropertyChanged(string propertyName = "")
+        protected virtual void OnPropertyChanged(string propertyName = "")
         {
-            PropertyChanged?.Invoke(null, new PropertyChangedEventArgs(propertyName));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]

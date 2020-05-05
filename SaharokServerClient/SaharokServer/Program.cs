@@ -8,20 +8,21 @@ namespace SaharokServer
         static ServerObject server = null; // сервер
         static void Main(string[] args)
         {
-            //try
-            //{
+            try
+            {
                 server = new ServerObject();
-                server.ListenAsync();
+                //server.ListenAsync1();
+                server.ListenAsync2();
                 while (true)
                 {
                     Console.ReadLine();
                 }
-            //}
-            //catch (Exception ex)
-            //{
-            //    //Console.WriteLine(ex.Message);
-            //    throw ex;
-            //}
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+                Main(new string[0] { });
+            }
         }
     }
 }

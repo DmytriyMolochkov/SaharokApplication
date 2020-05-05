@@ -36,7 +36,6 @@ namespace Saharok
             {
                 new MyFileAssociation();
             }
-            ClientObject.Connect();
         }
     }
 }
