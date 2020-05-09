@@ -31,11 +31,13 @@ namespace Saharok.ViewModel
     {
         public MainWindowViewModel()
         {
-            ClientObject1 = new ClientObject("127.0.0.1", 8888, 1);
+            ClientObject1 = new ClientObject("109.68.215.3", 8888, 1); /*109.68.215.3*/ /*127.0.0.1*/
             ClientObject1.PropertyChanged += (object sender, PropertyChangedEventArgs e) =>  IsServer1Connect = ClientObject1.IsServerConnect;
+            ClientObject1.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer1Tip = $"Сервер №1 {(ClientObject1.IsServerConnect ? "подключён" : "отключён")}.";
             ClientObject1.Connect(true);
-            ClientObject2 = new ClientObject("127.0.0.1", 8887, 2);
+            ClientObject2 = new ClientObject("109.68.215.3", 8889, 2);
             ClientObject2.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer2Connect = ClientObject2.IsServerConnect;
+            ClientObject1.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer2Tip = $"Сервер №2 {(ClientObject2.IsServerConnect ? "подключён" : "отключён")}.";
             ClientObject2.Connect(true);
             LoadProjectEvent += LoadProject;
             CloseProjectEvent += CloseProject;
@@ -47,6 +49,7 @@ namespace Saharok.ViewModel
             ClickLoadProject = new Command(arg => LoadProject(), arg => LoadProject_CanExecute());
             ClickCloseProject = new Command(arg => CloseProject(), arg => CloseProject_CanExecute());
             ClickOpenCreateProjectWindow = new Command(arg => OpenCreateProjectWindow(), arg => OpenCreateProjectWindow_CanExecute());
+            ClickOpenReferenceWindow = new Command(arg => OpenCreateReferenceWindow(), arg => OpenReferenceWindow_CanExecute());
             ClickChooseFolderOpenFileDialog = new Command(arg => ChooseFolderOpenFileDialog());
             ClickCreateProject = new Command(arg => CreateProject(PathProject, NameProject, CodeProject));
             ClickFormProject = new Command(arg =>
@@ -184,9 +187,32 @@ namespace Saharok.ViewModel
             }
         }
 
+        private string isServer1Tip;
+        public string IsServer1Tip
+        {
+            get => isServer1Tip;
+            set
+            {
+                isServer1Tip = value;
+                OnPropertyChanged(nameof(IsServer1Tip));
+            }
+        }
+
+        private string isServer2Tip;
+        public string IsServer2Tip
+        {
+            get => isServer2Tip;
+            set
+            {
+                isServer2Tip = value;
+                OnPropertyChanged(nameof(IsServer2Tip));
+            }
+        }
+
         public ICommand ClickLoadProject { get; set; }
         public ICommand ClickCloseProject { get; set; }
         public ICommand ClickOpenCreateProjectWindow { get; set; }
+        public ICommand ClickOpenReferenceWindow { get; set; }
         public ICommand ClickChooseFolderOpenFileDialog { get; set; }
         public ICommand ClickCreateProject { get; set; }
         public ICommand ClickFormProject { get; set; }
@@ -263,7 +289,7 @@ namespace Saharok.ViewModel
             createNewProjectWindow = new CreateNewProjectWindow();
             createNewProjectWindow.Owner = App.window;
             createNewProjectWindow.DataContext = ((MainWindowViewModel)App.window.DataContext);
-            createNewProjectWindow.Show();
+            createNewProjectWindow.ShowDialog();
         }
 
         private void CreateProject(string pathProject, string nameProject, string codeProject)
@@ -294,6 +320,20 @@ namespace Saharok.ViewModel
             }
         }
 
+        CreateReferenceWindow createReferenceWindow { get; set; }
+        private void OpenCreateReferenceWindow()
+        {
+            createReferenceWindow = new CreateReferenceWindow();
+            createReferenceWindow.Owner = App.window;
+            createReferenceWindow.DataContext = ((MainWindowViewModel)App.window.DataContext);
+            createReferenceWindow.ShowDialog();
+        }
+
+        private bool OpenReferenceWindow_CanExecute()
+        {
+            return true;
+        }
+
         private void FormOnServerProject(object objectToProject)
         {
             try
@@ -321,7 +361,8 @@ namespace Saharok.ViewModel
                 {
                     try
                     {
-                        FormProject.CreateProject(objectToProject, ClientObject2);
+                        //FormProject.CreateProject(objectToProject, ClientObject2);
+                        throw ex;
                     }
                     catch (ServerException e)
                     {
@@ -511,7 +552,7 @@ namespace Saharok.ViewModel
             OnExceptionEvent();
             IEnumerable<string> messages = GetErrorMessages(ex);
 
-            System.Windows.MessageBox.Show(String.Join($"{Environment.NewLine}{Environment.NewLine}", messages), $"Упс... {GetRandomSmile()} что - то пошло не так    ");
+            System.Windows.MessageBox.Show(String.Join(Environment.NewLine + Environment.NewLine, messages), $"Упс... {GetRandomSmile()} что - то пошло не так    ");
         }
         private IEnumerable<string> GetErrorMessages(Exception ex)
         {

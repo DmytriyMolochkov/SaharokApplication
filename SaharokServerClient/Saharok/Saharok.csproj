@@ -157,6 +157,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="View\CreateReferenceWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="View\CreateNewProjectWindow.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -190,6 +194,9 @@
     <Compile Include="Styles\CustomizedWindow\VS2012WindowStyle.cs" />
     <Compile Include="ViewModel\Command.cs" />
     <Compile Include="ViewModel\MainWindowViewModel.cs" />
+    <Compile Include="View\CreateReferenceWindow.xaml.cs">
+      <DependentUpon>CreateReferenceWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="View\CreateNewProjectWindow.xaml.cs">
       <DependentUpon>CreateNewProjectWindow.xaml</DependentUpon>
     </Compile>

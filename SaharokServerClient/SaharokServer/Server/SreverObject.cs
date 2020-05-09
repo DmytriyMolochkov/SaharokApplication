@@ -12,7 +12,6 @@ namespace SaharokServer
     public class ServerObject
     {
         public TcpListener tcpListener1; // сервер для прослушивания
-        public TcpListener tcpListener2; // сервер для прослушивания
         List<ClientObject> clients = new List<ClientObject>(); // все подключения
         protected internal void AddConnection(ClientObject clientObject)
         {
@@ -41,32 +40,7 @@ namespace SaharokServer
                     ClientObject clientObject = new ClientObject(tcpClient, this);
                     Thread clientThread1 = new Thread(new ThreadStart(clientObject.Process));
                     clientThread1.Start();
-                   
-                }
-            }
-            catch (Exception ex)
-            {
-                Disconnect();
-                Console.WriteLine(ex.Message);
-                throw ex;
-            }
-        }
-
-        protected internal async Task ListenAsync2()
-        {
-            try
-            {
-                tcpListener2 = new TcpListener(IPAddress.Any, 8887);
-                tcpListener2.Start();
-                Console.WriteLine("Сервер запущен. Ожидание подключений...");
-                while (true)
-                {
-                    TcpClient tcpClient = await Task.Run(
-                        () => tcpListener2.AcceptTcpClientAsync());
-                    ClientObject clientObject = new ClientObject(tcpClient, this);
-                    Thread clientThread2 = new Thread(new ThreadStart(clientObject.Process));
-                    clientThread2.Start();
-
+                    Console.WriteLine("К серверу подключился клиент");
                 }
             }
             catch (Exception ex)

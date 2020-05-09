@@ -10,7 +10,7 @@
         Title="Создать проект"
         Height="500"
         Width="900"
-
+        WindowStartupLocation="CenterScreen"
         Style="{StaticResource VS2012WindowStyleDialogWindow}"
         >
     <!--Icon="\Group icon\mainicon.ico"-->

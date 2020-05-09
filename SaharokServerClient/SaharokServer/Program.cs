@@ -11,8 +11,7 @@ namespace SaharokServer
             try
             {
                 server = new ServerObject();
-                //server.ListenAsync1();
-                server.ListenAsync2();
+                server.ListenAsync1();
                 while (true)
                 {
                     Console.ReadLine();

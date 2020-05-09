@@ -12,8 +12,10 @@
     Title ="{Binding Path=MyProject.Name, UpdateSourceTrigger=PropertyChanged}"
     xmlns:test="clr-namespace:Saharok"
     xmlns:viewmodel="clr-namespace:Saharok.ViewModel"
-    xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase" WindowStartupLocation="CenterScreen"
-    xmlns:prop="clr-namespace:Saharok.Properties">
+    xmlns:scm="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+    xmlns:prop="clr-namespace:Saharok.Properties"
+    WindowStartupLocation="CenterScreen"
+    >
     <Window.DataContext>
         <viewmodel:MainWindowViewModel/>
     </Window.DataContext>

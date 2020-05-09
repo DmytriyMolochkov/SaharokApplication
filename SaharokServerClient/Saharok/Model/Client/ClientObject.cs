@@ -35,7 +35,6 @@ namespace Saharok.Model.Client
             Host = host;
             Port = port;
             Number = numberServer;
-            //Token = CancelTokenSource.Token;
         }
 
 
@@ -60,29 +59,6 @@ namespace Saharok.Model.Client
                 }
             }
         }
-
-        //private bool cryticalError;
-        //bool CryticalError
-        //{
-        //    get
-        //    {
-        //        lock (_lock)
-        //        {
-        //            return cryticalError;
-        //        }
-        //    }
-        //    set
-        //    {
-        //        lock (_lock)
-        //        {
-
-        //            cryticalError = value;
-        //            OnPropertyChanged(nameof(CryticalError));
-
-        //        }
-        //    }
-        //}
-
 
         // отправка сообщений
         public void SendMessage(object objectsToProject)
@@ -117,20 +93,16 @@ namespace Saharok.Model.Client
                 CancelTokenSource = new CancellationTokenSource();
                 try
                 {
+                    
                     Token = CancelTokenSource.Token;
                     Estream = new EchoStream(Token);
-                    do
-                    {
-                        Nstream.CopyTo(Estream);
-                    }
-                    while (Nstream.DataAvailable);
+                    Nstream.CopyTo(Estream);
                 }
-                catch (Exception)
-                {
-                    IsServerConnect = client.Connected;
-                    CancelTokenSource.Cancel();
-                    Connect(true);
-                }
+                catch (Exception) { }
+                Disconnect();
+                IsServerConnect = client.Connected;
+                CancelTokenSource.Cancel();
+                Connect(true);
             });
         }
 
@@ -176,6 +148,7 @@ namespace Saharok.Model.Client
 
         public FilesToPDFSort ReceiveMessage()
         {
+            object data = null;
             BinaryFormatter formatter = new BinaryFormatter();
             formatter.Binder = new Type1ToType2DeserializationBinder();
             CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
@@ -187,13 +160,23 @@ namespace Saharok.Model.Client
                     CheckStream(token);
                     while (true)
                     {
-                        object data = null;
+                        data = null;
                         data = formatter.Deserialize(Estream);
                         if (data.GetType().Name == "InfoOfProcess")
+                        {
                             InfoOfProcess.SetInstance((InfoOfProcess)data);
-                        else
+                        }
+                        else if (data.GetType().Name == typeof(FilesToPDFSort).Name)
                         {
                             return (FilesToPDFSort)data;
+                        }
+                        else if (data.GetType().Name == typeof(string).Name)
+                        {
+                            throw new ServerDataException(data.ToString());
+                        }
+                        else
+                        {
+                            throw new ServerDataException("От сервера получена нечитаемая информация.");
                         }
                     }
                 }
@@ -201,6 +184,10 @@ namespace Saharok.Model.Client
                 {
                     throw new ServerException($"Соединение с сервером №{Number} потеряно.       ");
                 }
+            }
+            catch (ServerDataException ex)
+            {
+                throw ex;
             }
             catch (Exception ex)
             {
@@ -243,190 +230,10 @@ namespace Saharok.Model.Client
         { }
     }
 
-
-
-
-
-
-
-
-    //public class ClientObject
-    //{
-    //    private const string host = "127.0.0.1";
-    //    private const int port = 8888;
-    //    private static readonly object _lock = new object();
-    //    static TcpClient client = new TcpClient();
-    //    static NetworkStream Nstream;
-    //    static EchoStream Estream;
-
-    //    private static bool isServer1Connect;
-    //    public static bool IsServer1Connect
-    //    {
-    //        get
-    //        {
-    //            lock (_lock)
-    //            {
-    //                return isServer1Connect;
-    //            }
-    //        }
-    //        set
-    //        {
-    //            lock (_lock)
-    //            {
-    //                isServer1Connect = value;
-    //                OnPropertyChanged(nameof(IsServer1Connect));
-    //            }
-    //        }
-    //    }
-
-    //    // отправка сообщений
-    //    public static void SendMessage(object objectsToProject)
-    //    {
-    //        try
-    //        {
-    //            if (client.Connected)
-    //            {
-    //                BinaryFormatter formatter = new BinaryFormatter();
-    //                formatter.Serialize(Nstream, objectsToProject);
-    //            }
-    //            else
-    //            {
-    //                throw new Exception("Соединение с сервером потеряно.       ");
-    //            }
-    //        }
-    //        catch (Exception ex)
-    //        {
-    //            throw ex;
-    //        }
-    //    }
-
-    //    // получение сообщений
-    //    public static void CheckConnection()
-    //    {
-    //        Task.Run(() =>
-    //        {
-    //            try
-    //            {
-    //                Estream = new EchoStream();
-    //                do
-    //                {
-    //                    Nstream.CopyTo(Estream);
-    //                }
-    //                while (Nstream.DataAvailable);
-    //            }
-    //            catch (Exception)
-    //            {
-    //                IsServer1Connect = client.Connected;
-    //                Connect(true);
-    //            }
-    //        });
-    //    }
-
-    //    public static void CheckStream(CancellationToken token)
-    //    {
-    //        Task.Run(() =>
-    //        {
-    //            while (!token.IsCancellationRequested)
-    //            {
-    //                long lastLength = Estream.Length;
-    //                Thread.Sleep(5000);
-    //                if (lastLength == Estream.Length && !token.IsCancellationRequested)
-    //                {
-    //                    Estream.ReadTimeout = 1;
-    //                    Estream.Write(new byte[1] { 0 }, 0, 1);
-    //                }
-    //            }
-    //        });
-    //    }
-
-    //    public static void Connect(bool isCheckConnection = false)
-    //    {
-    //        Task.Run(() =>
-    //        {
-    //            while (!client.Connected)
-    //            {
-    //                try
-    //                {
-    //                    client.Connect(host, port); //подключение клиента
-    //                    Nstream = client.GetStream(); // получаем поток
-    //                    IsServer1Connect = client.Connected;
-    //                    if (isCheckConnection)
-    //                        CheckConnection();
-    //                }
-    //                catch (Exception ex)
-    //                {
-    //                    Disconnect();
-    //                    lock (_lock)
-    //                    {
-    //                        client = new TcpClient();
-    //                    }
-    //                    Thread.Sleep(5000);
-    //                }
-    //            }
-    //        });
-    //    }
-
-    //    public static FilesToPDFSort ReceiveMessage()
-    //    {
-    //        CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
-    //        CancellationToken token = cancelTokenSource.Token;
-    //        BinaryFormatter formatter = new BinaryFormatter();
-    //        formatter.Binder = new Type1ToType2DeserializationBinder();
-    //        try
-    //        {
-    //            if (client.Connected)
-    //            {
-    //                CheckStream(token);
-    //                while (true)
-    //                {
-    //                    object data = null;
-    //                    data = formatter.Deserialize(Estream);
-    //                    if (data.GetType().Name == "InfoOfProcess")
-    //                        InfoOfProcess.SetInstance((InfoOfProcess)data);
-    //                    else
-    //                    {
-    //                        return (FilesToPDFSort)data;
-    //                    }
-    //                }
-    //            }
-    //            else
-    //            {
-    //                throw new Exception("Соединение с сервером потеряно.       ");
-    //            }
-    //        }
-    //        catch (Exception ex)
-    //        {
-
-    //            Disconnect();
-    //            Connect();
-    //            if (ex.Message == "Конец потока обнаружен до завершения разбора.")
-    //                throw new Exception("Превышено вермя ожидания сервера.        ");
-    //            else throw ex;
-    //        }
-    //        finally
-    //        {
-    //            cancelTokenSource.Cancel(); ;
-    //        }
-    //    }
-
-    //    public static void Disconnect()
-    //    {
-    //        if (Nstream != null)
-    //            Nstream.Close();//отключение потока
-    //        if (Estream != null)
-    //            Estream.Close();//отключение потока
-    //        if (client != null)
-    //        {
-    //            client.Close();//отключение клиента
-    //            IsServer1Connect = client.Connected;
-    //        }  
-    //    }
-
-    //    public static event PropertyChangedEventHandler PropertyChanged;
-
-    //    private static void OnPropertyChanged(string propertyName = "")
-    //    {
-    //        PropertyChanged?.Invoke(null, new PropertyChangedEventArgs(propertyName));
-    //    }
-    //}
+    public class ServerDataException : Exception
+    {
+        public ServerDataException(string message)
+            : base(message)
+        { }
+    }
 }

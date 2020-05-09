@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -18,52 +19,37 @@ namespace ObjectsProjectClient
         public List<FileToProject> FilesToProjectfromKompas = new List<FileToProject>();
         public List<FileToProject> FilesToProjectfromAutoCad = new List<FileToProject>();
 
-        private List<FileToProject> AllFilesToProject { get; set; } = new List<FileToProject>();
-        private List<SectionToProject> AllSectionsToProject { get; set; } = new List<SectionToProject>();
+        private List<FileToProject> FilesWithExtensionError = new List<FileToProject>();
+        private List<FileToProject> FilesWithNameError = new List<FileToProject>();
+
+        private List<SectionToProject> AllSectionsToProject = new List<SectionToProject>();
 
         public void CheckFilesToPDFSortToErrors()
         {
-            List<Task> tasks = new List<Task>();
+            List<string> errorMessages = new List<string>();
 
-            var ErrorFiles = AllFilesToProject.Where(file => file.MethodPDFFile == MethodPDFFile.NoPDFMethod).Select(file => file.Path).ToList();
-
-            if (ErrorFiles.Count() > 0)
-                tasks.Add(Task.Run(() =>
-                {
-                    if (ErrorFiles.Count() == 1)
-                    {
-                        throw new Exception($"Недопустимое расширение у файла:{Environment.NewLine}      " +
-                                                   String.Join(Environment.NewLine + "      ", ErrorFiles) + Environment.NewLine);
-                    }
-                    else
-                    {
-                        throw new Exception($"Недопустимое расширение у файлов:{Environment.NewLine}      " +
-                                                   String.Join(Environment.NewLine + "      ", ErrorFiles) + Environment.NewLine);
-                    }
-                }));
+            if (FilesWithExtensionError.Count() == 1)
+            {
+                errorMessages.Add($"Недопустимое расширение у файла:{Environment.NewLine}      " +
+                    String.Join(Environment.NewLine + "      ", FilesWithExtensionError.Select(e => e.Path)));
+            }
+            else if(FilesWithExtensionError.Count() > 1)
+            {
+                errorMessages.Add($"Недопустимое расширение у файлов:{Environment.NewLine}      " +
+                    String.Join(Environment.NewLine + "      ", FilesWithExtensionError.Select(e => e.Path)));
+            }
 
 
-            var ErrorFiles2 = AllFilesToProject
-                .Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF)
-                .Where(file => file.MethodPDFFile != MethodPDFFile.AutoCad)
-                .GroupBy(file => file.OutputFileName).Where(group => group.ToList().Count > 1)
-                .SelectMany(group => group)
-                .Select(file => file.Path).ToList();
-            if (ErrorFiles2.Count() > 0)
-                tasks.Add(Task.Run(() =>
-                       throw new Exception("Имя PDF файлов будет одинаковым у следующих файлов: "
-                           + Environment.NewLine + "      "
-                           + String.Join(Environment.NewLine + "      ", ErrorFiles2) + Environment.NewLine)));
+            if (FilesWithNameError.Count() > 0)
+                errorMessages.Add($"Имя PDF файлов будет одинаковым у следующих файлов:{Environment.NewLine}      " +
+                    String.Join(Environment.NewLine + "      ", FilesWithNameError.Select(e => e.Path)) );
 
-            Task.WaitAll(tasks.ToArray());
+            if (errorMessages.Count > 0)
+                throw new Exception(String.Join(Environment.NewLine + Environment.NewLine, errorMessages));
         }
 
-        public List<FileToProject> GetAllFilesToProject()
-        {
-            return AllFilesToProject;
-        }
 
-        public List<SectionToProject> GetAllSectionsToProject()
+        public IEnumerable<SectionToProject> GetAllSectionsToProject()
         {
             return AllSectionsToProject;
         }
