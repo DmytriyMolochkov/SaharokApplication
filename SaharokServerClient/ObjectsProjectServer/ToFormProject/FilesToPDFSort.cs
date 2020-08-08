@@ -12,7 +12,6 @@ namespace ObjectsProjectServer
     [Serializable]
     public class FilesToPDFSort : ISerializable
     {
-       
         public List<FileToProject> FilesToProjectfromPDF = new List<FileToProject>();
         public List<FileToProject> FilesToProjectfromWord = new List<FileToProject>();
         public List<FileToProject> FilesToProjectfromExcel = new List<FileToProject>();

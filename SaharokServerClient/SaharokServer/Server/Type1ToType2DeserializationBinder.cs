@@ -11,10 +11,9 @@ namespace SaharokServer
         public override Type BindToType(string assemblyName, string typeName)
         {
             Type typeToDeserialize = null;
-            typeName = typeName.Replace("Client", "Server");
-            assemblyName = assemblyName.Replace("Client", "Server");
+            typeName = typeName.Replace("Saharok", "ObjectsProjectServer");
+            assemblyName = assemblyName.Replace("Saharok", "ObjectsProjectServer");
             typeToDeserialize = Type.GetType(String.Format($"{typeName}, {assemblyName}"));
-            //typeToDeserialize = Type.GetType(String.Format($"{abc}"));
             return typeToDeserialize;
         }
     }

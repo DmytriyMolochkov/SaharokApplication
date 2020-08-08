@@ -23,6 +23,5 @@ namespace SaharokServer
             }
             return source;
         }
-
     }
 }

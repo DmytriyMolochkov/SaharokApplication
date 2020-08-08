@@ -16,7 +16,6 @@ using System.Windows.Forms;
 using System.Threading;
 using System.IO.Compression;
 using System.ComponentModel;
-using ObjectsProjectClient;
 using Saharok.Model.Client;
 using System.Collections.Concurrent;
 
@@ -24,7 +23,6 @@ namespace Saharok.Model
 {
     public static class FormProject
     {
-
         public static IEnumerable<IEnumerable<T>> SplitIntoGroupsByTheResultOfDividing<T>(
             this IEnumerable<T> source,
             int count)
@@ -37,8 +35,8 @@ namespace Saharok.Model
         }
 
         public static IEnumerable<IEnumerable<T>> SplitIntoGroupsByTheRemainderOfDividing<T>(
-        this IEnumerable<T> source,
-        int count)
+            this IEnumerable<T> source,
+            int count)
         {
             return source
             .Select((x, y) => new { Index = y, Value = x })
@@ -47,7 +45,16 @@ namespace Saharok.Model
             .ToList();
         }
 
-        private class Apps
+        public static bool ApplicationVisibility { get; private set; } = false;
+        private static object lockWord = new Object();
+        private static object lockKompas = new Object();
+        private static object _lock = new Object();
+
+        private static CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
+        private static CancellationToken token = cancelTokenSource.Token;
+        private static bool isManuallyCancellToken = false;
+
+        public static class Apps
         {
             public class Kompas
             {
@@ -57,55 +64,71 @@ namespace Saharok.Model
 
                 public Kompas Quit()
                 {
-                    if (kompasApp != null)
+                    lock (lockKompas)
                     {
-                        kompasApp.Quit();
-                        return null;
+                        if (kompasApp != null)
+                        {
+                            kompasApp.Quit();
+                            return null;
+                        }
+                        else
+                            return null;
                     }
-                    else
-                        return null;
                 }
             }
 
-            public ExcelApp excel = null;
-            public List<WordApp> words = new List<WordApp>();
-
-            private List<Kompas> _kompases;
-
-            public List<Kompas> kompases = new List<Kompas>();
+            public static ExcelApp excel = null;
+            public static List<WordApp> words = new List<WordApp>();
+            public static List<Kompas> kompases = new List<Kompas>();
 
             public static void RunWord(ref WordApp word)
             {
-                if (word == null)
+                lock (lockWord)
                 {
-                    word = new WordApp();
-                    word.Visible = false;
-                    word.DisplayAlerts = WdAlertLevel.wdAlertsNone;
-                    word.ScreenUpdating = false;
+                    if (word == null)
+                    {
+                        word = new WordApp();
+                        lock (_lock)
+                        {
+                            words.Add(word);
+                        }
+                        word.Visible = false;
+                        word.DisplayAlerts = WdAlertLevel.wdAlertsNone;
+                        word.ScreenUpdating = false;
+                    }
                 }
             }
 
             public static void QuitWord(ref WordApp word)
             {
-                if (word != null)
-                {
-                    word.Quit(ref saveChanges, ref oMissing, ref oMissing);
-                    word = null;
-                }
-            }
-
-            public static void QuitWords(ref List<WordApp> words)
-            {
-                foreach (WordApp word in words)
+                lock (lockWord)
                 {
                     if (word != null)
                     {
                         word.Quit(ref saveChanges, ref oMissing, ref oMissing);
+                        lock (_lock)
+                        {
+                            words.Remove(word);
+                        }
+                        word = null;
                     }
                 }
             }
 
-            public static void RunExcel(ref ExcelApp excel)
+            public static void QuitWords()
+            {
+                lock (lockWord)
+                {
+                    words.Where(word => word != null).ForEachImmediate(word =>
+                    {
+                        word.Quit(ref saveChanges, ref oMissing, ref oMissing);
+                        word = null;
+                    });
+                    words.Clear();
+                }
+            }
+
+            public static void RunExcel()
             {
                 if (excel == null)
                 {
@@ -116,7 +139,7 @@ namespace Saharok.Model
                 }
             }
 
-            public static void QuitExcel(ref ExcelApp excel)
+            public static void QuitExcel()
             {
                 if (excel != null)
                 {
@@ -127,42 +150,90 @@ namespace Saharok.Model
 
             public static void RunKompas(ref Kompas kompas)
             {
-                if (kompas.kompasApp == null)
+                lock (lockKompas)
                 {
-                    kompas.kompasApp = ConnectKompas.CreateKompas();
-                    kompas.kompasApi7 = (IApplication)kompas.kompasApp.ksGetApplication7();
-                    kompas.kompasApi7.Visible = false;
-                    kompas.ConverterPDF = kompas.kompasApi7.get_Converter(Path.Combine(kompas.kompasApp.ksSystemPath(5), "Pdf2d.dll"));
+                    if (kompas.kompasApp == null)
+                    {
+                        kompases?.Add(kompas);
+                        kompas.kompasApp = ConnectKompas.CreateKompas();
+                        kompas.kompasApi7 = (IApplication)kompas.kompasApp.ksGetApplication7();
+                        kompas.kompasApi7.Visible = false;
+                        kompas.ConverterPDF = kompas.kompasApi7.get_Converter(Path.Combine(kompas.kompasApp.ksSystemPath(5), "Pdf2d.dll"));
+                    }
                 }
             }
 
             public static void QuitKompas(ref Kompas kompas)
             {
-                if (kompas != null && kompas.kompasApp != null)
-                {
-                    kompas.kompasApp.Quit();
-                    kompas = null;
-                }
-            }
-
-            public static void QuitKompases(ref List<Kompas> komapses)
-            {
-                foreach (Kompas kompas in komapses)
+                lock (lockKompas)
                 {
                     if (kompas != null && kompas.kompasApp != null)
                     {
                         kompas.kompasApp.Quit();
+                        kompases.Remove(kompas);
+                        kompas.kompasApp = null;
+                        kompas.kompasApi7 = null;
+                        kompas = null;
                     }
                 }
-                komapses = null;
             }
 
-            public static void QuitApps(ref Apps apps)
+            public static void QuitKompases()
             {
-                QuitKompases(ref apps.kompases);
-                QuitWords(ref apps.words);
-                QuitExcel(ref apps.excel);
+                lock (lockKompas)
+                {
+                    kompases.Where(kompas => kompas != null && kompas.kompasApp != null).ForEachImmediate(kompas =>
+                    {
+                        kompas.kompasApp.Quit();
+                        kompas.kompasApp = null;
+                        kompas.kompasApi7 = null;
+                        kompas = null;
+                    });
+                    kompases.Clear();
+                }
+            }
 
+            public static void QuitApps()
+            {
+                QuitKompases();
+                QuitWords();
+                QuitExcel();
+            }
+
+            public static void ChangeApplicationVisibility()
+            {
+                lock (lockWord)
+                {
+                    words.Where(word => word != null).ForEachImmediate(word =>
+                    {
+                        word.Visible = !ApplicationVisibility;
+                        word.ScreenUpdating = !ApplicationVisibility;
+                        word.DisplayAlerts = (ApplicationVisibility ? WdAlertLevel.wdAlertsNone : WdAlertLevel.wdAlertsAll);
+                    });
+                }
+
+                if (excel != null)
+                {
+                    excel.Visible = !ApplicationVisibility;
+                    excel.ScreenUpdating = !ApplicationVisibility;
+                }
+
+                lock (lockKompas)
+                {
+                    kompases.Where(kompas => kompas != null && kompas.kompasApp != null && kompas.kompasApi7 != null).ForEachImmediate(kompas =>
+                    {
+                        try
+                        {
+                            kompas.kompasApi7.Visible = !ApplicationVisibility;
+                        }
+                        catch (Exception) // часто кидает ошибки, если приложение в процессе открытия или закрытия
+                        {
+
+                        }
+                    });
+                }
+
+                ApplicationVisibility = !ApplicationVisibility;
             }
         }
 
@@ -174,11 +245,17 @@ namespace Saharok.Model
                 FilesToPDFSort filesToPDFSort = clientObject.ReceiveMessage();
                 filesToPDFSort.CheckFilesToPDFSortToErrors();
                 DoPDFFileUsingApps(filesToPDFSort);
-                CheckSectionsIsDone(filesToPDFSort);
+
+                if(!token.IsCancellationRequested)
+                    CheckSectionsIsDone(filesToPDFSort);
             }
             catch (Exception ex)
             {
-                throw ex;
+                if (!isManuallyCancellToken)
+                {
+                    throw ex;
+                }
+                isManuallyCancellToken = false;
             }
         }
 
@@ -215,16 +292,16 @@ namespace Saharok.Model
                 });
             if (errorMessage != null)
                 throw new Exception(errorMessage + Environment.NewLine + Environment.NewLine);
-
         }
-
-        private static object _lock = new Object();
 
         private static void DoPDFFileUsingApps(FilesToPDFSort filesToPDFSort)
         {
             try
             {
-                Apps apps = new Apps();
+                cancelTokenSource = new CancellationTokenSource();
+                token = cancelTokenSource.Token;
+                isManuallyCancellToken = false;
+
                 InfoOfProcess infoOfProcess = InfoOfProcess.GetInstance();
                 List<System.Threading.Tasks.Task> tasks = new List<System.Threading.Tasks.Task>();
                 List<System.Threading.Tasks.Task> localTasks = new List<System.Threading.Tasks.Task>();
@@ -234,20 +311,21 @@ namespace Saharok.Model
                     List<System.Threading.Tasks.Task> stackTasks = new List<System.Threading.Tasks.Task>();
                     var filesToProjectfromKompas = new ConcurrentQueue<FileToProject>(filesToPDFSort.FilesToProjectfromKompas);
 
-                    for (int i = 0; i < 3; i++)
+                    for (int i = 0; i < 3 && i < filesToPDFSort.FilesToProjectfromKompas.Count/10 +1; i++)
                     {
                         stackTasks.Add(System.Threading.Tasks.Task.Run(() =>
                         {
-                            var kompas = new Apps.Kompas();
-                            lock (_lock)
-                            {
-                                apps.kompases.Add(kompas);
-                            }
+                            Apps.Kompas kompas = new Apps.Kompas();
                             bool sectionReadiness;
                             FileToProject file;
                             bool b;
-                            while (b = filesToProjectfromKompas.TryDequeue(out file))
+                            while (b = filesToProjectfromKompas.TryDequeue(out file) && !token.IsCancellationRequested)
                             {
+                                if (token.IsCancellationRequested)
+                                {
+                                    kompas.Quit();
+                                    return;
+                                }
                                 DoPDFfromKompas(file.Path, file.OutputFileName, ref kompas);
                                 lock (_lock)
                                 {
@@ -255,37 +333,38 @@ namespace Saharok.Model
                                     infoOfProcess.CompleteFormsFiles++;
                                     sectionReadiness = CheckSectionReadiness(file);
                                 }
-                                if (sectionReadiness)
+                                if (sectionReadiness && !token.IsCancellationRequested)
                                 {
                                     SectionToProject section = file.SectionToProject;
-                                    localTasks.Add(System.Threading.Tasks.Task.Run(() => FormSection(section)));
+                                    localTasks.Add(System.Threading.Tasks.Task.Run(() => FormSection(section), token));
                                 }
                             }
                             System.Threading.Tasks.Task.Run(() => kompas = kompas.Quit());
-                        }));
+                        }, token));
                     }
                     System.Threading.Tasks.Task.WaitAll(stackTasks.ToArray());
-                }));
+                }, token));
 
                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                 {
                     List<System.Threading.Tasks.Task> stackTasks = new List<System.Threading.Tasks.Task>();
                     var filesToProjectfromWord = new ConcurrentQueue<FileToProject>(filesToPDFSort.FilesToProjectfromWord);
 
-                    for (int i = 0; i < 2; i++)
+                    for (int i = 0; i < 6 && i < filesToPDFSort.FilesToProjectfromWord.Count/8 + 1; i++)
                     {
                         stackTasks.Add(System.Threading.Tasks.Task.Run(() =>
                         {
-                            var word = new WordApp();
-                            lock (_lock)
-                            {
-                                apps.words.Add(word);
-                            }
+                            WordApp word = null;
                             bool sectionReadiness;
                             FileToProject file;
                             bool b;
-                            while ( b = filesToProjectfromWord.TryDequeue(out file))
+                            while ( b = filesToProjectfromWord.TryDequeue(out file) && !token.IsCancellationRequested)
                             {
+                                if (token.IsCancellationRequested)
+                                {
+                                    Apps.QuitWord(ref word);
+                                    return;
+                                }
                                 DoPDFfromWord(file.Path, file.OutputFileName, ref word);
                                 lock (_lock)
                                 {
@@ -293,44 +372,51 @@ namespace Saharok.Model
                                     infoOfProcess.CompleteFormsFiles++;
                                     sectionReadiness = CheckSectionReadiness(file);
                                 }
-                                if (sectionReadiness)
+                                if (sectionReadiness && !token.IsCancellationRequested)
                                 {
                                     SectionToProject section = file.SectionToProject;
-                                    localTasks.Add(System.Threading.Tasks.Task.Run(() => FormSection(section)));
+                                    localTasks.Add(System.Threading.Tasks.Task.Run(() => FormSection(section), token));
                                 }
                             }
                             System.Threading.Tasks.Task.Run(() => Apps.QuitWord(ref word));
-                        }));
+                        }, token));
                     }
                     System.Threading.Tasks.Task.WaitAll(stackTasks.ToArray());
-                }));
+                }, token));
 
                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                 {
                     bool sectionReadiness;
                     filesToPDFSort.FilesToProjectfromExcel.ForEachImmediate(file =>
                     {
-                        DoPDFfromExcel(file.Path, file.OutputFileName, ref apps.excel);
+                        if (token.IsCancellationRequested)
+                        {
+                            Apps.QuitExcel();
+                            return;
+                        }
+                        DoPDFfromExcel(file.Path, file.OutputFileName, ref Apps.excel);
                         lock (_lock)
                         {
                             file.IsDone = true;
                             infoOfProcess.CompleteFormsFiles++;
                             sectionReadiness = CheckSectionReadiness(file);
                         }
-                        if (sectionReadiness)
+                        if (sectionReadiness && !token.IsCancellationRequested)
                         {
                             SectionToProject section = file.SectionToProject;
-                            localTasks.Add(System.Threading.Tasks.Task.Run(() => FormSection(section)));
+                            localTasks.Add(System.Threading.Tasks.Task.Run(() => FormSection(section), token));
                         }
                     });
-                    System.Threading.Tasks.Task.Run(() => Apps.QuitExcel(ref apps.excel));
-                }));
+                    System.Threading.Tasks.Task.Run(() => Apps.QuitExcel());
+                }, token));
 
                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                 {
                     bool sectionReadiness;
                     filesToPDFSort.FilesToProjectfromAutoCad.ToList().ForEach(file =>
                     {
+                        if (token.IsCancellationRequested)
+                            return;
                         DoPDFfromAutoCAD(file.Path, file.OutputFileName);
                         lock (_lock)
                         {
@@ -338,19 +424,21 @@ namespace Saharok.Model
                             infoOfProcess.CompleteFormsFiles++;
                             sectionReadiness = CheckSectionReadiness(file);
                         }
-                        if (sectionReadiness)
+                        if (sectionReadiness && !token.IsCancellationRequested)
                         {
                             SectionToProject section = file.SectionToProject;
-                            localTasks.Add(System.Threading.Tasks.Task.Run(() => FormSection(section)));
+                            localTasks.Add(System.Threading.Tasks.Task.Run(() => FormSection(section), token));
                         }
                     });
-                }));
+                }, token));
 
                 tasks.Add(System.Threading.Tasks.Task.Run(() =>
                 {
                     bool sectionReadiness;
                     filesToPDFSort.FilesToProjectfromPDF.ForEachImmediate(file =>
                     {
+                        if (token.IsCancellationRequested)
+                            return;
                         DoPDFfromPDF(file.Path, file.OutputFileName);
                         lock (_lock)
                         {
@@ -358,72 +446,84 @@ namespace Saharok.Model
                             infoOfProcess.CompleteFormsFiles++;
                             sectionReadiness = CheckSectionReadiness(file);
                         }
-                        if (sectionReadiness)
+                        if (sectionReadiness && !token.IsCancellationRequested)
                         {
                             SectionToProject section = file.SectionToProject;
-                            localTasks.Add(System.Threading.Tasks.Task.Run(() => FormSection(section)));
+                            localTasks.Add(System.Threading.Tasks.Task.Run(() => FormSection(section), token));
                         }
                     });
-                }));
-
-                var emptySectionsFromFile = new List<string>();
-                filesToPDFSort.GetAllSectionsToProject()?
-                    .Where(section => section.FilesToProject.Count == 0)
-                    .ToList()
-                    .ForEach(section => emptySectionsFromFile.Add(section.Path));
-
-                var emptySectionsFromPDF = new List<string>();
-                filesToPDFSort.GetAllSectionsToProject()?
-                    .Where(section => section.FilesToProject.Count > 0)
-                    .Where(section => section.FilesToProject.All(file => file.MethodPDFFile == MethodPDFFile.DontPDF))
-                    .ToList()
-                    .ForEach(section =>
-                    {
-                        emptySectionsFromPDF.Add(section.Path);
-                        tasks.Add(System.Threading.Tasks.Task.Run(() => FormSection(section)));
-                    });
+                }, token));
 
                 System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
                 System.Threading.Tasks.Task.WaitAll(localTasks.ToArray());
 
-                List<string> messeges = new List<string>();
+                ApplicationVisibility = false;
+
+                if (!token.IsCancellationRequested)
+                {
+                    List<string> messeges = new List<string>();
+
+                    var emptySectionsFromFile = new List<string>();
+                    filesToPDFSort.GetAllSectionsToProject()?
+                        .Where(section => section.FilesToProject.Count == 0)
+                        .ToList()
+                        .ForEach(section => emptySectionsFromFile.Add(section.Path));
+
+                    var emptySectionsFromPDF = new List<string>();
+                    filesToPDFSort.GetAllSectionsToProject()?
+                        .Where(section => section.FilesToProject.Count > 0)
+                        .Where(section => section.FilesToProject.All(file => file.MethodPDFFile == MethodPDFFile.DontPDF))
+                        .ToList()
+                        .ForEach(section =>
+                        {
+                            emptySectionsFromPDF.Add(section.Path);
+                            tasks.Add(System.Threading.Tasks.Task.Run(() => FormSection(section)));
+                        });
 
 
-                if (emptySectionsFromPDF.Count == 1)
-                {
-                    messeges.Add($"Обратите внивание, что следующий раздел не содержит файлов для PDF альбома:{Environment.NewLine}{Environment.NewLine}      " +
-                        String.Join($"{Environment.NewLine}      ", emptySectionsFromPDF) +
-                        $"{Environment.NewLine + Environment.NewLine}      " +
-                        $"поэтому для него был сформирован только ZIP архив.");
-                }
-                else if (emptySectionsFromPDF.Count > 1)
-                {
-                    messeges.Add($"Обратите внивание, что следующие разделы не содержат файлов для PDF альбома:{Environment.NewLine}{Environment.NewLine}      " +
-                        String.Join($"{Environment.NewLine}      ", emptySectionsFromPDF) +
-                        $"{Environment.NewLine + Environment.NewLine}      " +
-                        $"поэтому для них были сформированы только ZIP архивы.");
-                }
+                    if (emptySectionsFromPDF.Count == 1)
+                    {
+                        messeges.Add($"Обратите внивание, что следующий раздел не содержит файлов для PDF альбома:{Environment.NewLine}{Environment.NewLine}      " +
+                            String.Join($"{Environment.NewLine}      ", emptySectionsFromPDF) +
+                            $"{Environment.NewLine + Environment.NewLine}      " +
+                            $"поэтому для него был сформирован только ZIP архив.");
+                    }
+                    else if (emptySectionsFromPDF.Count > 1)
+                    {
+                        messeges.Add($"Обратите внивание, что следующие разделы не содержат файлов для PDF альбома:{Environment.NewLine}{Environment.NewLine}      " +
+                            String.Join($"{Environment.NewLine}      ", emptySectionsFromPDF) +
+                            $"{Environment.NewLine + Environment.NewLine}      " +
+                            $"поэтому для них были сформированы только ZIP архивы.");
+                    }
 
-                if (emptySectionsFromFile.Count == 1)
-                {
-                    messeges.Add($"Обратите внивание, что следующий раздел не содержит файлов для проекта:{Environment.NewLine}{Environment.NewLine}      " +
-                        String.Join($"{Environment.NewLine}      ", emptySectionsFromFile) +
-                        $"{Environment.NewLine + Environment.NewLine}      " +
-                        $"поэтому он не был включён в проект.");
+                    if (emptySectionsFromFile.Count == 1)
+                    {
+                        messeges.Add($"Обратите внивание, что следующий раздел не содержит файлов для проекта:{Environment.NewLine}{Environment.NewLine}      " +
+                            String.Join($"{Environment.NewLine}      ", emptySectionsFromFile) +
+                            $"{Environment.NewLine + Environment.NewLine}      " +
+                            $"поэтому он не был включён в проект.");
+                    }
+                    else if (emptySectionsFromFile.Count > 1)
+                    {
+                        messeges.Add($"Обратите внивание, что следующие разделы не содержат файлов для проекта:{Environment.NewLine}{Environment.NewLine}      " +
+                            String.Join($"{Environment.NewLine}      ", emptySectionsFromFile) +
+                            $"{Environment.NewLine + Environment.NewLine}      " +
+                            $"поэтому они не были включены в проект."); ;
+                    }
+                    if (messeges.Count > 0)
+                        System.Windows.MessageBox.Show(String.Join($"{Environment.NewLine}{Environment.NewLine}", messeges));
                 }
-                else if (emptySectionsFromFile.Count > 1)
+                else
                 {
-                    messeges.Add($"Обратите внивание, что следующие разделы не содержат файлов для проекта:{Environment.NewLine}{Environment.NewLine}      " +
-                        String.Join($"{Environment.NewLine}      ", emptySectionsFromFile) +
-                        $"{Environment.NewLine + Environment.NewLine}      " +
-                        $"поэтому они не были включены в проект."); ;
+                    Apps.QuitApps();
+                    return;
                 }
-                if (messeges.Count > 0)
-                    System.Windows.MessageBox.Show(String.Join($"{Environment.NewLine}{Environment.NewLine}", messeges));
             }
-            catch (AggregateException ae)
+            catch (Exception ex)
             {
-                throw ae;
+                Apps.QuitApps();
+                if(!isManuallyCancellToken)
+                    throw ex;
             }
         }
 
@@ -439,6 +539,7 @@ namespace Saharok.Model
             }
             catch (Exception ex)
             {
+                CancelToken();
                 throw new Exception($"При копировании файла {fileName}{Environment.NewLine}произошла ошибка: {Environment.NewLine} {ex.Message}."
                     );
             }
@@ -468,6 +569,7 @@ namespace Saharok.Model
             }
             catch (Exception ex)
             {
+                CancelToken();
                 Apps.QuitWord(ref word);
                 throw new Exception($"При формировании файла PDF {fileName}{Environment.NewLine}произошла ошибка: {Environment.NewLine} {ex.Message}.");
             }
@@ -477,12 +579,12 @@ namespace Saharok.Model
         {
             try
             {
-                Apps.RunExcel(ref excel);
+                Apps.RunExcel();
                 if (!Directory.Exists(System.IO.Path.GetDirectoryName(outputFileName.ToString())))
                 {
                     Directory.CreateDirectory(System.IO.Path.GetDirectoryName(outputFileName.ToString()));
                 }
-                Apps.RunExcel(ref excel);
+                Apps.RunExcel();
                 Microsoft.Office.Interop.Excel.Workbook doc = excel.Workbooks.OpenXML(fileName, oMissing, oMissing);
                 doc.Activate();
                 doc.ExportAsFixedFormat(XlFixedFormatType.xlTypePDF, outputFileName, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing, oMissing);
@@ -491,11 +593,12 @@ namespace Saharok.Model
             }
             catch (Exception ex)
             {
-                Apps.QuitExcel(ref excel);
+                CancelToken();
+                Apps.QuitExcel();
                 throw new Exception($"При формировании файла PDF {fileName}{Environment.NewLine}произошла ошибка: {Environment.NewLine} {ex.Message}.");
             }
         }
-
+        
         private static void DoPDFfromKompas(string fileName, string outputFileName, ref Apps.Kompas kompas)
         {
             try
@@ -509,6 +612,7 @@ namespace Saharok.Model
             }
             catch (Exception ex)
             {
+                CancelToken();
                 Apps.QuitKompas(ref kompas);
                 throw new Exception($"При формировании файла PDF {fileName}{Environment.NewLine}произошла ошибка: {Environment.NewLine} {ex.Message}.");
             }
@@ -529,6 +633,7 @@ namespace Saharok.Model
                 }
             }
         }
+
         private static void Merge(List<string> files, FileStream stream)
         {
             try
@@ -549,9 +654,9 @@ namespace Saharok.Model
             }
             catch (Exception ex)
             {
+                CancelToken();
                 throw ex;
             }
-
         }
 
         public static void FormSection(SectionToProject sectionToProject)
@@ -594,10 +699,11 @@ namespace Saharok.Model
                                             };
                                         }
                                     }
-                                }));
+                                }, token));
                             }
                             else
                             {
+                                CancelToken();
                                 throw new Exception($"Для архива {Path.GetFileName(outputSectionPath.Key)} не удалось найти файлы:{Environment.NewLine}      "
                                     + String.Join(
                                         $"{Environment.NewLine}      ", sectionToProject.FilesToProject
@@ -629,13 +735,15 @@ namespace Saharok.Model
                                     }
                                     catch (AggregateException ae)
                                     {
+                                        CancelToken();
                                         throw ae;
                                     }
 
-                                }));
+                                }, token));
                             }
                             else
                             {
+                                CancelToken();
                                 throw new Exception($"Для альбома {Path.GetFileName(outputSectionPath.Key)} не удалось найти PDF файлы:{Environment.NewLine}      "
                                     + String.Join(
                                         $"{Environment.NewLine}      ", sectionToProject.FilesToProject
@@ -647,6 +755,7 @@ namespace Saharok.Model
                         }
                     default:
                         {
+                            CancelToken();
                             throw new Exception($"Неизвестный метод формирования секции: {outputSectionPath.Value}.");
                         }
                 }
@@ -661,5 +770,11 @@ namespace Saharok.Model
         private static object oMissing = System.Reflection.Missing.Value;
         private static object saveChanges = WdSaveOptions.wdDoNotSaveChanges;
         #endregion
+
+        public static void CancelToken(bool isManually = false)
+        {
+            cancelTokenSource.Cancel();
+            isManuallyCancellToken = isManually;
+        }
     }
 }

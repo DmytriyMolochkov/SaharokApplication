@@ -5,31 +5,30 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Net.Sockets;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
-using ObjectsProjectClient;
-using Saharok.ViewModel;
+using System.Windows.Forms;
+using Microsoft.Win32;
+using Saharok.Model.Client.Encryption;
 
 namespace Saharok.Model.Client
 {
     public class ClientObject : INotifyPropertyChanged
     {
-        int Number;
+        private int Number;
         private string Host;
         private int Port;
+        private string HWID;
         private readonly object _lock = new object();
         TcpClient client;
         NetworkStream Nstream;
         EchoStream Estream;
+        MyAes myAes;
 
         CancellationTokenSource CancelTokenSource = new CancellationTokenSource();
         CancellationToken Token;
 
 
-        public ClientObject(string host , int port, int numberServer)
+        public ClientObject(string host, int port, int numberServer)
         {
             client = new TcpClient();
             Host = host;
@@ -67,12 +66,12 @@ namespace Saharok.Model.Client
             {
                 if (client.Connected)
                 {
-                    if(Estream != null)
-                    {
+                    if (Estream != null)
                         Estream.Flush();
-                    }
-                    BinaryFormatter formatter = new BinaryFormatter();
-                    formatter.Serialize(Nstream, objectsToProject);
+
+                    myAes = new MyAes();
+                    myAes.ImportParameters(Estream, Nstream);
+                    myAes.EncryptToStream(objectsToProject, Nstream);
                 }
                 else
                 {
@@ -86,35 +85,32 @@ namespace Saharok.Model.Client
         }
 
         // получение сообщений
-        public void CheckConnection()
+        public async void CheckConnection()
         {
-            Task.Run(() =>
+            CancelTokenSource = new CancellationTokenSource();
+            try
             {
-                CancelTokenSource = new CancellationTokenSource();
-                try
-                {
-                    
-                    Token = CancelTokenSource.Token;
-                    Estream = new EchoStream(Token);
-                    Nstream.CopyTo(Estream);
-                }
-                catch (Exception) { }
-                Disconnect();
-                IsServerConnect = client.Connected;
-                CancelTokenSource.Cancel();
-                Connect(true);
-            });
+                Token = CancelTokenSource.Token;
+                Estream = new EchoStream(Token);
+                await System.Threading.Tasks.Task.Run(() => Nstream.CopyTo(Estream));
+            }
+            catch (Exception) { }
+            Disconnect();
+            CancelTokenSource.Cancel();
+            IsServerConnect = client.Connected;
+            Thread.Sleep(1000);
+            Connect(true);
         }
 
         public void CheckStream(CancellationToken token)
         {
-            Task.Run(() =>
+            System.Threading.Tasks.Task.Run(() =>
             {
-            while (!token.IsCancellationRequested)
-            {
-                long lastLength = Estream.Length;
-                Thread.Sleep(5000);
-                if (lastLength == Estream.Length && !token.IsCancellationRequested)
+                while (!token.IsCancellationRequested)
+                {
+                    long lastLength = Estream.Length;
+                    Thread.Sleep(5000);
+                    if (lastLength == Estream.Length && !token.IsCancellationRequested)
                     {
                         Disconnect();
                     }
@@ -124,7 +120,7 @@ namespace Saharok.Model.Client
 
         public void Connect(bool isCheckConnection = false)
         {
-            Task.Run(() =>
+            System.Threading.Tasks.Task.Run(() =>
             {
                 while (!client.Connected)
                 {
@@ -133,14 +129,23 @@ namespace Saharok.Model.Client
                         client.Connect(Host, Port); //подключение клиента
                         Nstream = client.GetStream(); // получаем поток
                         IsServerConnect = client.Connected;
+
+                        if (Estream != null)
+                            Estream.Flush();
+
                         if (isCheckConnection)
                             CheckConnection();
+                        HWID = GetMachineGuid();
+                        string userName = SystemInformation.UserName;
+                        myAes = new MyAes();
+
+                        myAes.ImportParameters(Estream, Nstream);
+                        myAes.EncryptToStream(new string[] { HWID, userName }, Nstream);
                     }
                     catch (Exception ex)
                     {
                         Disconnect();
                         IsServerConnect = client.Connected;
-                        Thread.Sleep(5000);
                     }
                 }
             });
@@ -148,9 +153,7 @@ namespace Saharok.Model.Client
 
         public FilesToPDFSort ReceiveMessage()
         {
-            object data = null;
-            BinaryFormatter formatter = new BinaryFormatter();
-            formatter.Binder = new Type1ToType2DeserializationBinder();
+            object data;
             CancellationTokenSource cancelTokenSource = new CancellationTokenSource();
             try
             {
@@ -161,22 +164,24 @@ namespace Saharok.Model.Client
                     while (true)
                     {
                         data = null;
-                        data = formatter.Deserialize(Estream);
-                        if (data.GetType().Name == "InfoOfProcess")
+                        data = myAes.DecryptFromStream(Estream);
+
+                        if (data is InfoOfProcess)
                         {
                             InfoOfProcess.SetInstance((InfoOfProcess)data);
+
                         }
-                        else if (data.GetType().Name == typeof(FilesToPDFSort).Name)
+                        else if (data is FilesToPDFSort)
                         {
                             return (FilesToPDFSort)data;
                         }
-                        else if (data.GetType().Name == typeof(string).Name)
+                        else if (data is string)
                         {
                             throw new ServerDataException(data.ToString());
                         }
                         else
                         {
-                            throw new ServerDataException("От сервера получена нечитаемая информация.");
+                            throw new ServerDataException("От сервера получена нечитаемая информация.       ");
                         }
                     }
                 }
@@ -193,14 +198,14 @@ namespace Saharok.Model.Client
             {
                 if (ex.Message == "Операция была отменена.")
                 {
-                    Disconnect();
+                    //Disconnect();
                     throw new ServerException($"Превышено вермя ожидания сервера №{Number}.        ");
                 }
                 else throw new ServerException(ex.Message);
             }
             finally
             {
-                cancelTokenSource.Cancel(); ;
+                cancelTokenSource.Cancel();
             }
         }
 
@@ -209,10 +214,33 @@ namespace Saharok.Model.Client
             if (Nstream != null)
                 Nstream.Close();//отключение потока
             if (client != null)
-            {
                 client.Close();//отключение клиента
-            }
+
             client = new TcpClient();
+        }
+
+        private string GetMachineGuid()
+        {
+            string location = @"SOFTWARE\Microsoft\Cryptography";
+            string name = "MachineGuid";
+
+            using (RegistryKey localMachineX64View =
+                RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
+            {
+                using (RegistryKey rk = localMachineX64View.OpenSubKey(location))
+                {
+                    if (rk == null)
+                        throw new KeyNotFoundException(
+                            string.Format("Key Not Found: {0}", location));
+
+                    object machineGuid = rk.GetValue(name);
+                    if (machineGuid == null)
+                        throw new IndexOutOfRangeException(
+                            string.Format("Index Not Found: {0}", name));
+
+                    return machineGuid.ToString();
+                }
+            }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

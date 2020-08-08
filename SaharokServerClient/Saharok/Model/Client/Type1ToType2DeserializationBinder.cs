@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using System.Text;
-using ObjectsProjectClient;
 
 namespace Saharok
 {
@@ -11,8 +10,8 @@ namespace Saharok
         public override Type BindToType(string assemblyName, string typeName)
         {
             Type typeToDeserialize = null;
-            typeName = typeName.Replace("Server", "Client");
-            assemblyName = assemblyName.Replace("Server", "Client");
+            typeName = typeName.Replace("ObjectsProjectServer", "Saharok");
+            assemblyName = assemblyName.Replace("ObjectsProjectServer", "Saharok");
             typeToDeserialize = Type.GetType(String.Format($"{typeName}, {assemblyName}"));
             return typeToDeserialize;
         }

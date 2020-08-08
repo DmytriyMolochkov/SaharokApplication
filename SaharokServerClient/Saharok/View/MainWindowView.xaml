@@ -37,100 +37,126 @@
                 <ItemsPanelTemplate>
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" MinWidth="135"/>
-                            <ColumnDefinition Width="Auto" MinWidth="225"/>
-                            <ColumnDefinition Width="Auto" MinWidth="185"/>
-                            <ColumnDefinition />
-                            <ColumnDefinition Width="Auto" MinWidth="23"/>
+                            <ColumnDefinition Width="Auto" MinWidth="135" />
+                            <ColumnDefinition  Width="*"  MinWidth="0"/>
+                            <ColumnDefinition  Width="5*" MinWidth="235"/>
+                            <ColumnDefinition  Width="5*" MinWidth="193"/>
+                            <ColumnDefinition  Width="48"/>
+                            <ColumnDefinition  Width="20"/>
                         </Grid.ColumnDefinitions>
                     </Grid>
                 </ItemsPanelTemplate>
             </StatusBar.ItemsPanel>
-            <StatusBarItem Grid.Column="0" HorizontalAlignment="Left">
-                <TextBlock Margin="3,0,0,0" Text="{Binding Path = StatusBarText, UpdateSourceTrigger=PropertyChanged}"/>
+            <StatusBarItem Grid.Column="0" HorizontalAlignment="Left" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" Margin="0">
+                <Grid>
+                    <TextBlock Margin="3,0,0,0" Text="{Binding Path = StatusBarText, UpdateSourceTrigger=PropertyChanged}" />
+                    <Button
+                        x:Name="StatusBarButton"
+                        Content="" 
+                        Width="133"
+                        Margin="0,0,0,-1"
+                        Style="{StaticResource StatusBarButton}"
+                        Command="{Binding ClickOpenProcessedPopup}"
+                    >
+                    </Button>
+                </Grid>
+
             </StatusBarItem>
-            <StatusBarItem Grid.Column="1" HorizontalAlignment="Left">
+            <StatusBarItem Grid.Column="1" HorizontalAlignment="Stretch">
+
+            </StatusBarItem>
+            <StatusBarItem Grid.Column="2" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
                 <TextBlock Margin="3,0,0,0" Text="{Binding Path = FormedFilesText, UpdateSourceTrigger=PropertyChanged}"/>
             </StatusBarItem>
-            <StatusBarItem Grid.Column="2" HorizontalAlignment="Left">
+            <StatusBarItem Grid.Column="3" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left">
                 <TextBlock Margin="3,0,0,0" Text="{Binding Path = FormedSectionsText, UpdateSourceTrigger=PropertyChanged}"/>
             </StatusBarItem>
-            <StatusBarItem Grid.Column="3" HorizontalAlignment="Right">
+            <StatusBarItem Grid.Column="4" HorizontalAlignment="Right">
                 <TextBlock Margin="5,0,5,0" Text="{Binding Path = StatusBarTimerText, UpdateSourceTrigger=PropertyChanged}" HorizontalAlignment="Right"/>
             </StatusBarItem>
-            <StatusBarItem Grid.Column="4" HorizontalAlignment="Right">
+            <StatusBarItem Grid.Column="5" HorizontalAlignment="Right">
                 <ResizeGrip Opacity="0.75"/>
             </StatusBarItem>
         </StatusBar>
-        <Grid>
-            <Grid.ColumnDefinitions>
-                <!--<ColumnDefinition Width="30*"  />
-                <ColumnDefinition Width="5" />-->
-                <ColumnDefinition Width="12*"/>
-            </Grid.ColumnDefinitions>
-            <!--<Grid
-                Grid.Column="0"
-                Background="#1E1E1E" 
-                Margin="5,0,0,5">
-               
-                -->
-            <!--<Grid.RowDefinitions>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="5*"/>
-                </Grid.RowDefinitions>
-                <TextBox Grid.Row="0" Text="{Binding Path=SynchronizedText, UpdateSourceTrigger=PropertyChanged, Mode=OneWayToSource}"/>
-                <TextBlock Grid.Row="1" Text="{Binding Path=SynchronizedText, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}" Foreground="White"/>
-                <Button Grid.Row="2" x:Name="btAddNumber" Content="Добавить число" DockPanel.Dock="Top" Command="{Binding ClickMethod}" />
-                <TabControl x:Name="lbNumbers" Grid.Row="3" ItemsSource="{Binding Path=numbers, UpdateSourceTrigger=PropertyChanged}" />-->
-            <!--
+        <Popup
+            x:Name="ProcessedPopup"
+            StaysOpen="False"
+            PlacementTarget="{Binding ElementName=StatusBarButton}"
+            Placement="Top"
+            VerticalOffset="-4"
+            HorizontalOffset="-2"
+            Width="230"
+            Height="120"
+            AllowsTransparency="True"
+            PopupAnimation="Slide"
+            >
 
-            </Grid>
-            <GridSplitter 
-                Grid.Column="1"
-                Width="5" HorizontalAlignment="Stretch"
-                ShowsPreview="False"
-                Background="#2d2d2f"/>-->
-            <TabControl 
-                Name="MyTabControl"
-                Grid.Column="0"
-                Margin="5,0,5,0"
-                ItemsSource="{Binding Source={StaticResource TypeDocumentations}}"  >
-                <TabControl.Resources>
-                    <Style TargetType="TabControl" BasedOn="{StaticResource styleTabControl}"/>
-                    <Style TargetType="TabItem" BasedOn="{StaticResource styleTabItem}"/>
-                </TabControl.Resources>
-                <TabControl.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock
+            <Border
+                CornerRadius="4,10,10,4"
+                Opacity="0.95"
+                BorderThickness="0"
+                Background="Transparent"
+                >
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition/>
+                        <RowDefinition/>
+                    </Grid.RowDefinitions>
+                    <Button
+                        Grid.Row="0"
+                        Margin="0,0,0,1"
+                        Style="{StaticResource ProcessButtonTop}"
+                        >
+                    </Button>
+                    <Button
+                        Margin="0,1,0,0"
+                        Grid.Row="1"
+                        Style="{StaticResource ProcessButtonBottom}"
+                        >
+                    </Button>
+                </Grid>
+            </Border>
+        </Popup>
+
+        <TabControl 
+            Name="MyTabControl"
+            Margin="5,0,5,0"
+            ItemsSource="{Binding Source={StaticResource TypeDocumentations}}"  
+            >
+            <TabControl.Resources>
+                <Style TargetType="TabControl" BasedOn="{StaticResource styleTabControl}"/>
+                <Style TargetType="TabItem" BasedOn="{StaticResource styleTabItem}"/>
+            </TabControl.Resources>
+            <TabControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock
                             Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}"
                             Foreground="White"/>
-                    </DataTemplate>
-                </TabControl.ItemTemplate>
-                <TabControl.ContentTemplate>
-                    <DataTemplate>
-                        <ListBox
+                </DataTemplate>
+            </TabControl.ItemTemplate>
+            <TabControl.ContentTemplate>
+                <DataTemplate>
+                    <ListBox
                             Grid.Column="2"
                             DataContext="{Binding}"
-                            Style="{StaticResource expandable_listbox1}">
-                            <ListBox.Resources>
-                                <CollectionViewSource 
+                            Style="{StaticResource ExpandableSectionListbox}">
+                        <ListBox.Resources>
+                            <CollectionViewSource 
                                     Source="{Binding Sections}"
                                     x:Key="Sections"
                                     IsLiveSortingRequested="True">
-                                    <CollectionViewSource.SortDescriptions>
-                                        <scm:SortDescription PropertyName="Name"/>
-                                    </CollectionViewSource.SortDescriptions>
-                                </CollectionViewSource>
-                            </ListBox.Resources>
-                            <ListBox.ItemsSource>
-                                <Binding Source="{StaticResource Sections}" />
-                            </ListBox.ItemsSource>
-                        </ListBox>
-                    </DataTemplate>
-                </TabControl.ContentTemplate>
-            </TabControl>
-        </Grid>
+                                <CollectionViewSource.SortDescriptions>
+                                    <scm:SortDescription PropertyName="Name"/>
+                                </CollectionViewSource.SortDescriptions>
+                            </CollectionViewSource>
+                        </ListBox.Resources>
+                        <ListBox.ItemsSource>
+                            <Binding Source="{StaticResource Sections}" />
+                        </ListBox.ItemsSource>
+                    </ListBox>
+                </DataTemplate>
+            </TabControl.ContentTemplate>
+        </TabControl>
     </DockPanel>
 </Window>
+    

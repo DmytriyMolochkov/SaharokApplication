@@ -49,5 +49,20 @@ namespace ObjectsProjectServer
             FilesToPDFSort filesToPDFSort = new FilesToPDFSort(sectionsToProject);
             return filesToPDFSort;
         }
+
+        public string GetNameProject()
+        {
+            return Name;
+        }
+
+        public string GetCodeProject()
+        {
+            return CodeProject;
+        }
+
+        public string GetPathProject()
+        {
+            return Path;
+        }
     }
 }

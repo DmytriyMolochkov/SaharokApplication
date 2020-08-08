@@ -24,7 +24,6 @@ namespace Saharok.Model
 
                 throw ex;
             }
-
         }
     }
 }

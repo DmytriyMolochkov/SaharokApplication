@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Media;
 using System.Collections;
 using Saharok.ViewModel;
+using System.Threading;
 
 namespace Saharok.Styles.CustomizedWindow
 {
@@ -67,7 +68,15 @@ namespace Saharok.Styles.CustomizedWindow
         {
             if (e.ClickCount > 1)
             {
-                sender.ForWindowFromTemplate(w => w.Close());
+                sender.ForWindowFromTemplate(w => 
+                {
+                    //((MainWindowViewModel)w.DataContext).AbortProcess();
+                    //while (((MainWindowViewModel)w.DataContext).IsProcessed)
+                    //{
+                    //    Thread.Sleep(500);
+                    //}
+                    w.Close();
+                });
             }
             else
             {
@@ -78,7 +87,15 @@ namespace Saharok.Styles.CustomizedWindow
 
         void CloseButtonClick(object sender, RoutedEventArgs e)
         {
-            sender.ForWindowFromTemplate(w => w.Close());
+            sender.ForWindowFromTemplate(w =>
+            {
+                //((MainWindowViewModel)w.DataContext).AbortProcess();
+                //while (((MainWindowViewModel)w.DataContext).IsProcessed)
+                //{
+                //    Thread.Sleep(500);
+                //}
+                w.Close();
+            });
         }
 
         void MinButtonClick(object sender, RoutedEventArgs e)
@@ -154,7 +171,6 @@ namespace Saharok.Styles.CustomizedWindow
             SouthEast = 8,
             SouthWest = 7
         }
-
         #endregion
     }
 }

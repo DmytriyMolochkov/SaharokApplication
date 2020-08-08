@@ -175,12 +175,25 @@
     </Compile>
     <Compile Include="Model\Client\ClientObject.cs" />
     <Compile Include="Model\Client\EchoStream.cs" />
+    <Compile Include="Model\Client\Encryption\MyAes.cs" />
+    <Compile Include="Model\Client\Encryption\MyRijndael.cs" />
+    <Compile Include="Model\Client\Encryption\MyRSA.cs" />
     <Compile Include="Model\Client\Type1ToType2DeserializationBinder.cs" />
     <Compile Include="Model\ConnectKompas.cs" />
     <Compile Include="Model\CreateProjectClass.cs" />
     <Compile Include="Model\DirectoryMethods.cs" />
-    <Compile Include="Model\FileAssociation.cs" />
     <Compile Include="Model\FormProject.cs" />
+    <Compile Include="ObjectsProjectClient\CustomMethods.cs" />
+    <Compile Include="ObjectsProjectClient\FieldsSerializble.cs" />
+    <Compile Include="ObjectsProjectClient\FileSection.cs" />
+    <Compile Include="ObjectsProjectClient\Project.cs" />
+    <Compile Include="ObjectsProjectClient\Section.cs" />
+    <Compile Include="ObjectsProjectClient\ToFormProject\FilesToPDFSort.cs" />
+    <Compile Include="ObjectsProjectClient\ToFormProject\FileToProject.cs" />
+    <Compile Include="ObjectsProjectClient\ToFormProject\InfoOfProcess.cs" />
+    <Compile Include="ObjectsProjectClient\ToFormProject\SectionToProject.cs" />
+    <Compile Include="ObjectsProjectClient\TypeDocumentation.cs" />
+    <Compile Include="ObjectsProjectClient\TypeFile.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -295,10 +308,11 @@
     <Resource Include="mainicon.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ObjectsProjectClient\ObjectsProjectClient.csproj">
-      <Project>{54fb743c-4894-48b5-8c45-6bd3c95dfe60}</Project>
-      <Name>ObjectsProjectClient</Name>
-    </ProjectReference>
+    <Resource Include="Stop.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="NotSeen.png" />
+    <Resource Include="Seen.png" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

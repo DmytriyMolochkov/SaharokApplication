@@ -46,33 +46,31 @@ namespace ObjectsProjectServer
         }
         public static SectionToProject GetSection(Section section)
         {
-            
             string nameDirTypeDocumentation = "Готовый проект";
             string nameDirFileToPDFToPages = "PDF постранично";
             TypeDocumentation typeDocumentation = section.TypeDocumentation;
-            Project project = typeDocumentation.Project;
             Dictionary<string, MethodFormFile> outputSectionsPaths = new Dictionary<string, MethodFormFile>();
             outputSectionsPaths.Add(
-                System.IO.Path.Combine(System.IO.Path.Combine(project.Path, nameDirTypeDocumentation, "На отправку", typeDocumentation.Name),
+                System.IO.Path.Combine(System.IO.Path.Combine(section.GetPathProject(), nameDirTypeDocumentation, "На отправку", typeDocumentation.Name),
                     String.Join(" ", new string[]
                     {
-                        section.Name.Split(' ')[0], project.CodeProject + "-" + String.Join(" ", section.Name.Split(' ').Skip(1)), project.Name + ".pdf"
+                        section.Name.Split(' ')[0], section.GetCodeProject() + "-" + String.Join(" ", section.Name.Split(' ').Skip(1)), section.GetNameProject() + ".pdf"
                     })),
                 MethodFormFile.PDF);
 
             outputSectionsPaths.Add(
-                System.IO.Path.Combine(System.IO.Path.Combine(project.Path, nameDirTypeDocumentation, "На сервер", typeDocumentation.Name),
+                System.IO.Path.Combine(System.IO.Path.Combine(section.GetPathProject(), nameDirTypeDocumentation, "На сервер", typeDocumentation.Name),
                     String.Join(" ", new string[]
                     {
-                        section.Name.Split(' ')[0], project.CodeProject + "-" + String.Join(" ", section.Name.Split(' ').Skip(1)), project.Name + ".pdf"
+                        section.Name.Split(' ')[0], section.GetCodeProject() + "-" + String.Join(" ", section.Name.Split(' ').Skip(1)), section.GetNameProject() + ".pdf"
                     })),
                 MethodFormFile.PDF);
 
             outputSectionsPaths.Add(
-                System.IO.Path.Combine(System.IO.Path.Combine(project.Path, nameDirTypeDocumentation, "На сервер", typeDocumentation.Name),
+                System.IO.Path.Combine(System.IO.Path.Combine(section.GetPathProject(), nameDirTypeDocumentation, "На сервер", typeDocumentation.Name),
                     String.Join(" ", new string[]
                     {
-                        section.Name.Split(' ')[0], project.CodeProject + "-" + String.Join(" ", section.Name.Split(' ').Skip(1)), project.Name + ".zip"
+                        section.Name.Split(' ')[0], section.GetCodeProject() + "-" + String.Join(" ", section.Name.Split(' ').Skip(1)), section.GetNameProject() + ".zip"
                     })),
                 MethodFormFile.ZIP);
 
@@ -80,7 +78,7 @@ namespace ObjectsProjectServer
             section.Files.ForEachImmediate(file =>
             {
                 string outputFileName = System.IO.Path.ChangeExtension(
-                    System.IO.Path.Combine(project.Path, nameDirFileToPDFToPages, typeDocumentation.Name, section.Name, file.Name), "pdf");
+                    System.IO.Path.Combine(section.GetPathProject(), nameDirFileToPDFToPages, typeDocumentation.Name, section.Name, file.Name), "pdf");
                 filesToPDF.Add(new FileToProject(file.Path, file.Name, outputFileName, file.MethodPDFFile));
             });
             List<FileToProject> sortedfilesToPDF = filesToPDF.OrderBy(item => item.OutputFileName).ToList();

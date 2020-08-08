@@ -20,10 +20,10 @@ using System.Windows.Media.Imaging;
 using System.Drawing;
 using System.Globalization;
 using System.Collections.Concurrent;
-using ObjectsProjectClient;
 using Saharok.Model.Client;
 using System.Runtime.Remoting.Channels;
 using Microsoft.Office.Interop.Word;
+using static Saharok.Model.FormProject;
 
 namespace Saharok.ViewModel
 {
@@ -31,13 +31,15 @@ namespace Saharok.ViewModel
     {
         public MainWindowViewModel()
         {
-            ClientObject1 = new ClientObject("109.68.215.3", 8888, 1); /*109.68.215.3*/ /*127.0.0.1*/
-            ClientObject1.PropertyChanged += (object sender, PropertyChangedEventArgs e) =>  IsServer1Connect = ClientObject1.IsServerConnect;
+            IsProcessed = false;
+            ApplicationVisibility = Model.FormProject.ApplicationVisibility;
+            ClientObject1 = new ClientObject("127.0.0.1", 8889, 1); /*109.68.215.3*/ /*127.0.0.1*/
+            ClientObject1.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer1Connect = ClientObject1.IsServerConnect;
             ClientObject1.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer1Tip = $"Сервер №1 {(ClientObject1.IsServerConnect ? "подключён" : "отключён")}.";
             ClientObject1.Connect(true);
-            ClientObject2 = new ClientObject("109.68.215.3", 8889, 2);
+            ClientObject2 = new ClientObject("127.0.0.1", 8888, 2); /*5.23.54.220*/
             ClientObject2.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer2Connect = ClientObject2.IsServerConnect;
-            ClientObject1.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer2Tip = $"Сервер №2 {(ClientObject2.IsServerConnect ? "подключён" : "отключён")}.";
+            ClientObject2.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer2Tip = $"Сервер №2 {(ClientObject2.IsServerConnect ? "подключён" : "отключён")}.";
             ClientObject2.Connect(true);
             LoadProjectEvent += LoadProject;
             CloseProjectEvent += CloseProject;
@@ -52,17 +54,12 @@ namespace Saharok.ViewModel
             ClickOpenReferenceWindow = new Command(arg => OpenCreateReferenceWindow(), arg => OpenReferenceWindow_CanExecute());
             ClickChooseFolderOpenFileDialog = new Command(arg => ChooseFolderOpenFileDialog());
             ClickCreateProject = new Command(arg => CreateProject(PathProject, NameProject, CodeProject));
-            ClickFormProject = new Command(arg =>
-            {
-                Thread threadFormOnServerProject = new Thread(() => FormOnServerProject(arg));
-                threadFormOnServerProject.Priority = ThreadPriority.Highest;
-                threadFormOnServerProject.IsBackground = true;
-                threadFormOnServerProject.Start();
-            }
-            , arg => FormOnServerProject_CanExecute());
+            ClickOpenProcessedPopup = new Command(arg => OpenProcessedPopup(), arg => OpenProcessedPopup_CanExecute());
+            ClickChangeApplicationVisibility = new Command(arg => System.Threading.Tasks.Task.Run(() => ChangeApplicationVisibility()), arg => ChangeApplicationVisibility_CanExecute());
+            ClickAbortProcess = new Command(arg => System.Threading.Tasks.Task.Run(() => AbortProcess()));
+            ClickFormProject = new Command(arg => System.Threading.Tasks.Task.Run(() => FormOnServerProject(arg)), arg => FormOnServerProject_CanExecute());
         }
 
-        private static object syncRoot = new Object();
         ClientObject ClientObject1;
         ClientObject ClientObject2;
 
@@ -111,8 +108,16 @@ namespace Saharok.ViewModel
             }
         }
 
-        public bool IsProcessed { get; private set; } = false;
-
+        private bool isProcessed;
+        public bool IsProcessed
+        {
+            get => isProcessed;
+            set
+            {
+                isProcessed = value;
+                OnPropertyChanged(nameof(IsProcessed));
+            }
+        }
         private string statusBarColor;
         public string StatusBarColor
         {
@@ -209,6 +214,17 @@ namespace Saharok.ViewModel
             }
         }
 
+        private bool applicationVisibility;
+        public bool ApplicationVisibility
+        {
+            get => applicationVisibility;
+            set
+            {
+                applicationVisibility = value;
+                OnPropertyChanged(nameof(ApplicationVisibility));
+            }
+        }
+
         public ICommand ClickLoadProject { get; set; }
         public ICommand ClickCloseProject { get; set; }
         public ICommand ClickOpenCreateProjectWindow { get; set; }
@@ -220,6 +236,9 @@ namespace Saharok.ViewModel
         public ICommand ClickFormOnServerTypeDocumentation { get; set; }
         public ICommand ClickFormOnServerSection { get; set; }
         public ICommand ClickFormPDFToPagesFile { get; set; }
+        public ICommand ClickOpenProcessedPopup { get; set; }
+        public ICommand ClickChangeApplicationVisibility { get; set; }
+        public ICommand ClickAbortProcess { get; set; }
 
         public void LoadProject()
         {
@@ -357,12 +376,11 @@ namespace Saharok.ViewModel
                 {
                     FormProject.CreateProject(objectToProject, ClientObject1);
                 }
-                catch(ServerException ex)
+                catch (ServerException ex)
                 {
                     try
                     {
-                        //FormProject.CreateProject(objectToProject, ClientObject2);
-                        throw ex;
+                        FormProject.CreateProject(objectToProject, ClientObject2);
                     }
                     catch (ServerException e)
                     {
@@ -371,6 +389,8 @@ namespace Saharok.ViewModel
                 }
 
                 OnProcessOffEvent();
+
+                App.window.Dispatcher.Invoke(() => App.window.ProcessedPopup.IsOpen = false);
             }
             catch (Exception ex)
             {
@@ -390,6 +410,47 @@ namespace Saharok.ViewModel
             else
                 return true;
         }
+
+        private void OpenProcessedPopup()
+        {
+            App.window.ProcessedPopup.IsOpen = true;
+        }
+
+        private bool OpenProcessedPopup_CanExecute()
+        {
+            if (IsProcessed)
+                return true;
+            else
+                return false;
+        }
+
+        static bool ChangeApplicationVisibilityIsProcess;
+        private void ChangeApplicationVisibility()
+        {
+            ChangeApplicationVisibilityIsProcess = true;
+            Model.FormProject.Apps.ChangeApplicationVisibility();
+            ApplicationVisibility = Model.FormProject.ApplicationVisibility;
+            ChangeApplicationVisibilityIsProcess = false;
+        }
+
+        private bool ChangeApplicationVisibility_CanExecute()
+        {
+            if (ChangeApplicationVisibilityIsProcess)
+                return false;
+            else
+                return true;
+        }
+
+        public void AbortProcess()
+        {
+            Model.FormProject.CancelToken(true);
+            StatusBarText = StatusBarText.Replace("Формируется проект", "Отменяется процесс");
+            while (IsProcessed)
+            {
+                Thread.Sleep(500);
+            }
+        }
+
 
         public event EventHandler LoadProjectEvent;
         public event EventHandler CloseProjectEvent;
@@ -412,7 +473,6 @@ namespace Saharok.ViewModel
             StatusBarText = "Проект загружен";
             FormedFilesText = "";
             FormedSectionsText = "";
-            StatusBarTimerText = "";
         }
 
         void CloseProject(object source, EventArgs arg)
@@ -451,7 +511,7 @@ namespace Saharok.ViewModel
             IsProcessed = true;
             TimerAnimation();
             BootAnimation();
-            
+
             InfoOfProcess infoOfProcess = InfoOfProcess.GetInstance();
 
             infoOfProcess.CompleteFormsFiles = 0;
@@ -460,15 +520,14 @@ namespace Saharok.ViewModel
             infoOfProcess.TotalFormsFiles = 0;
 
             UpDateFormedProgressBarText();
-            StatusBarText = "Формируется проект";
             StatusBarColor = "ProcessWorks";
-            StatusBarTimerText = "00:00";
         }
 
         void ProcessOff(object source, EventArgs arg)
         {
             IsProcessed = false;
             OnLoadProjectEvent();
+            ApplicationVisibility = false;
         }
 
         public event EventHandler ExceptionEvent;
@@ -487,24 +546,13 @@ namespace Saharok.ViewModel
         }
         async void BootAnimation()
         {
+            StatusBarText = "Формируется проект";
             int i = 0;
             var Timer = new System.Timers.Timer();
             Timer.Interval = 1000;
             Timer.Elapsed += OnTimedEvent;
-            Timer.AutoReset = true;
-            Timer.Enabled = true;
-
-            while (IsProcessed)
-            {
-                await System.Threading.Tasks.Task.Delay(50);
-                if (!IsProcessed)
-                {
-                    Timer.Enabled = false;
-                }
-            }
-            Timer.Enabled = false;
-
-
+            Timer.Start();
+            PropertyChanged += OnOffTimerEvent;
 
             void OnTimedEvent(Object source, System.Timers.ElapsedEventArgs e)
             {
@@ -519,31 +567,39 @@ namespace Saharok.ViewModel
                     i = 0;
                 }
             }
-        }
-
-        async void TimerAnimation()
-        {
-            int i = 0;
-            DateTime ElapsedDateTime = new DateTime();
-            var Timer = new System.Timers.Timer();
-            Timer.Interval = 1000;
-            Timer.Elapsed += OnTimedEvent;
-            Timer.AutoReset = true;
-            Timer.Enabled = true;
-
-            while (IsProcessed)
+            void OnOffTimerEvent(Object source, PropertyChangedEventArgs e)
             {
-                await System.Threading.Tasks.Task.Delay(50);
-                if (!IsProcessed)
+                if (e.PropertyName == nameof(IsProcessed) && IsProcessed == false)
                 {
                     Timer.Enabled = false;
+                    PropertyChanged -= OnOffTimerEvent;
                 }
             }
-            Timer.Enabled = false;
+        }
+
+        void TimerAnimation()
+        {
+            StatusBarTimerText = "00:00";
+            DateTime StartDateTime = DateTime.Now;
+            DateTime ElapsedDateTime = new DateTime();
+            StartDateTime = DateTime.Now; ;
+            var Timer = new System.Timers.Timer();
+            Timer.Interval = 100;
+            Timer.Elapsed += OnTimedEvent;
+            Timer.Start();
+            PropertyChanged += OnOffTimerEvent;
 
             void OnTimedEvent(Object source, System.Timers.ElapsedEventArgs e)
             {
-                StatusBarTimerText = string.Format("{0:mm:ss}", ElapsedDateTime.AddSeconds(i++));
+                StatusBarTimerText = string.Format("{0:mm:ss}", ElapsedDateTime.AddTicks(DateTime.Now.Ticks - StartDateTime.Ticks));
+            }
+            void OnOffTimerEvent(Object source, PropertyChangedEventArgs e)
+            {
+                if (e.PropertyName == nameof(IsProcessed) && IsProcessed == false)
+                {
+                    Timer.Enabled = false;
+                    PropertyChanged -= OnOffTimerEvent;
+                }
             }
         }
 
@@ -563,7 +619,7 @@ namespace Saharok.ViewModel
 
             foreach (var e in ((AggregateException)ex).InnerExceptions)
             {
-                if(e is AggregateException)
+                if (e is AggregateException)
                     messages.AddRange(GetErrorMessages(e));
                 else
                     messages.Add(e.Message);
