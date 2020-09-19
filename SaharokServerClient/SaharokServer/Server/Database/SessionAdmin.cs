@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using System.Text;
 
 namespace SaharokServer.Server.Database
@@ -36,53 +37,45 @@ namespace SaharokServer.Server.Database
 
         }
 
-        public SessionAdmin(Admin admin, User user)
+        public void Start(Admin admin, User user, int serverNumber)
         {
             Admin = admin;
             User = user;
             TimeOn = DateTime.Now;
             IsOnline = true;
-            ServerNumber = ServerObject.ServerNumber;
+            ServerNumber = serverNumber;
             IsSuccessfulLogin = false;
         }
 
-        public void Login(ref Admin admin)
+        public void Login(Admin admin)
         {
             IsSuccessfulLogin = true;
             admin.LastHWID = admin.NowHWID;
             admin.LastIP = admin.NowIP;
             admin.LastNamePC = admin.NowNamePC;
             admin.LastSuccessfulLogin = DateTime.Now;
-            if (ServerObject.ServerNumber == 1)
-            {
+            if (ServerNumber % 2 > 0)
                 admin.IsOnlineServer1 = true;
-            }
-            else if (ServerObject.ServerNumber == 2)
-            {
+            else
                 admin.IsOnlineServer2 = true;
-            }
         }
 
-        public void Disconnect(ref Admin admin)
+        public void Disconnect()
         {
             TimeOff = DateTime.Now;
             ConnectionTime = string.Format("{0:HH:mm:ss}", new DateTime().AddTicks(TimeOff.Ticks - TimeOn.Ticks));
             IsOnline = false;
-            foreach (var s in admin.SessionsAdmin)
+            foreach (var s in Admin.SessionsAdmin)
             {
-                if (s.ServerNumber == ServerObject.ServerNumber && s.IsOnline)
+                if (s.ServerNumber == ServerNumber && s.IsOnline)
                 {
                     return;
                 }
             }
-            if (ServerObject.ServerNumber == 1)
-            {
-                admin.IsOnlineServer1 = false;
-            }
-            else if (ServerObject.ServerNumber == 2)
-            {
-                admin.IsOnlineServer2 = false;
-            }
+            if (ServerNumber % 2 > 0)
+                Admin.IsOnlineServer1 = false;
+            else
+                Admin.IsOnlineServer2 = false;
         }
     }
 }

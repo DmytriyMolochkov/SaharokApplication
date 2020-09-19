@@ -19,11 +19,11 @@ namespace SaharokServer.Server.Database
 
         }
 
-        public ErrorServerObject(Exception ex)
+        public ErrorServerObject(Exception ex, int serverNumber)
         {
             Time = DateTime.Now;
             ErrorMessage = ex.Message;
-            ServerNumber = ServerObject.ServerNumber;
+            ServerNumber = serverNumber;
         }
     }
 }

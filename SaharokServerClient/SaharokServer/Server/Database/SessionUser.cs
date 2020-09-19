@@ -29,34 +29,30 @@ namespace SaharokServer.Server.Database
 
         }
 
-        public SessionUser(User user)
+        public void Start(User user, int serverNumber)
         {
             User = user;
             TimeOn = user.LastConnection;
             IsOnline = true;
-            ServerNumber = ServerObject.ServerNumber;
+            ServerNumber = serverNumber;
         }
 
-        public void Disconnect(ref User user)
+        public void Disconnect()
         {
             TimeOff = DateTime.Now;
             ConnectionTime = string.Format("{0:HH:mm:ss}", new DateTime().AddTicks(TimeOff.Ticks - TimeOn.Ticks));
             IsOnline = false;
-            foreach (var s in user.SessionsUser)
+            foreach (var s in User.SessionsUser)
             {
-                if (s.ServerNumber == ServerObject.ServerNumber && s.IsOnline)
+                if (s.ServerNumber == ServerNumber && s.IsOnline)
                 {
                     return;
                 }
             }
-            if (ServerObject.ServerNumber == 1)
-            {
-                user.IsOnlineServer1 = false;
-            }
-            else if (ServerObject.ServerNumber == 2)
-            {
-                user.IsOnlineServer2 = false;
-            }
+            if (ServerNumber % 2 > 0)
+                User.IsOnlineServer1 = false;
+            else
+                User.IsOnlineServer2 = false;
         }
     }
 }

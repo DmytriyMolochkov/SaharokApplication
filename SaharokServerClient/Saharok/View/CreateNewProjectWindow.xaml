@@ -114,7 +114,7 @@
                     FontSize="16"
                     Margin="0,0,0,0"
                     VerticalContentAlignment="Center"
-                    Text="{Binding PathProject, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                    Text="{Binding PathDirectoryProject, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
                     />
                 <Button
                     Grid.Row="6"

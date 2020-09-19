@@ -10,6 +10,7 @@ using System.ComponentModel;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
 using System.Reflection;
+using System.Configuration;
 
 namespace Saharok
 {
@@ -53,7 +54,8 @@ namespace Saharok
             if (System.IO.Path.GetDirectoryName(e.FullPath) == Path && File.Exists(e.FullPath) && FileFilter(e.FullPath))
             {
                 string name = System.IO.Path.GetFileName(e.Name);
-                TypeDocumentation.Project.Invoke(() => Files.Add(new FileSection(e.FullPath, name, this)));
+                if(Files.Where(f => f.Name == name).Count() == 0)
+                    TypeDocumentation.Project.Invoke(() => Files.Add(new FileSection(e.FullPath, name, this)));
             }
         }
 
@@ -91,7 +93,10 @@ namespace Saharok
         }
         public void OnRename(object source, RenamedEventArgs e)
         {
-            if (System.IO.Path.GetDirectoryName(e.OldFullPath) == Path && File.Exists(e.FullPath) && IsNotCreateAfterRename(source, e) && IsNotDeleteAfterRename(source, e))
+            if (System.IO.Path.GetDirectoryName(e.OldFullPath) == Path 
+                && File.Exists(e.FullPath) 
+                && IsNotCreateAfterRename(source, e) 
+                && IsNotDeleteAfterRename(source, e))
             {
                 string oldName = System.IO.Path.GetFileName(e.OldName);
                 string newName = System.IO.Path.GetFileName(e.Name);
@@ -141,8 +146,6 @@ namespace Saharok
         {
             Files = new ObservableCollection<FileSection>(Directory.EnumerateFiles(Path, "*", SearchOption.TopDirectoryOnly)
                 .Where(line => FileFilter(line)).Select(line => new FileSection(line, System.IO.Path.GetFileName(line), this)));
-            //Files = new List<FileSection>(Directory.EnumerateFiles(Path, "*", SearchOption.TopDirectoryOnly)
-            //    .Where(line => FileFilter(line)).Select(line => new FileSection(line, System.IO.Path.GetFileName(line), this)));
         }
 
         public void RenamePath(Section element, string oldPath, string newPath)
@@ -151,15 +154,17 @@ namespace Saharok
             element.Files.ForEachImmediate(line => line.RenamePath(line, oldPath, newPath));
         }
 
+
+        [NonSerialized]
+        static List<string> ignoredExtensions = new List<string> (ConfigurationManager.AppSettings["IgnoredExtensions"].Replace(" ", String.Empty).Split(',')
+           /* ((IgnoredExtensionsConfigSection)ConfigurationManager.GetSection("IgnoredExtensions")).value.Replace(" ", String.Empty).Split(',')*/);
+
         private bool FileFilter(string fileName)
         {
-            List<string> ignoredExtensions = new List<string> { ".bak", ".tmp", ".sс$", ".dwl", ".cd~" };
             string extensionFile = System.IO.Path.GetExtension(fileName).ToLower();
-            bool result = ignoredExtensions.All(arg => arg != extensionFile) && File.GetAttributes(fileName) != FileAttributes.Hidden && !fileName.Contains("~$");
-            if (result)
-                return true;
-            else
-                return false;
+            FileAttributes r = File.GetAttributes(fileName);
+            return ignoredExtensions.All(arg => !extensionFile.StartsWith('.' + arg)) 
+                && (File.GetAttributes(fileName) & FileAttributes.Hidden) != FileAttributes.Hidden && !fileName.Contains("~$");
         }
 
 
@@ -169,14 +174,14 @@ namespace Saharok
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         protected Section(SerializationInfo info, StreamingContext context)
         {
             FieldsSerializble.GetValue(this, info);
         }
 
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
         {
             FieldsSerializble.AddValue(this, info);

@@ -1,7 +1,7 @@
-﻿using Kompas6API5;
-using KAPITypes;
-using KompasAPI7;
-using Kompas6Constants;
+﻿//using Kompas6API5;
+//using KAPITypes;
+//using KompasAPI7;
+//using Kompas6Constants;
 
 using System.Runtime.InteropServices;
 using System;
@@ -15,42 +15,42 @@ namespace Saharok.Model
     public static class ConnectKompas
     {
         //Запускает Компас
-        public static KompasObject CreateKompas()
+        public static dynamic CreateKompas()
         {
-            KompasObject kompas = (KompasObject)CreateApplicationObject("KOMPAS.Application.5");
+            dynamic kompas = CreateApplicationObject("KOMPAS.Application.5");
             if (kompas != null) return kompas;
             throw new SystemException("Проблема запуска Kompas, возможно приложение не установлено!");
         }
 
-        public static KompasObject CreateKompas(bool invisiable)
+        public static dynamic CreateKompas(bool invisiable)
         {
             if (invisiable)
             {
-                KompasObject kompas = (KompasObject)CreateApplicationObject("KSINVISIBLE.Application.5");
+                dynamic kompas = CreateApplicationObject("KSINVISIBLE.Application.5");
                 if (kompas != null) return kompas;
                 throw new SystemException("Проблема запуска Kompas, возможно приложение не установлено!");
             }
             else
             {
-                KompasObject kompas = (KompasObject)CreateApplicationObject("KOMPAS.Application.5");
+                dynamic kompas = CreateApplicationObject("KOMPAS.Application.5");
                 if (kompas != null) return kompas;
                 throw new SystemException("Проблема запуска Kompas, возможно приложение не установлено!");
             }
         }
 
         //Получает экземпляр запущенного компаса
-        public static KompasObject GetKompas()
+        public static dynamic GetKompas()
         {
-            KompasObject kompas = (KompasObject)GetApplicationObject("KOMPAS.Application.5");
+            dynamic kompas = GetApplicationObject("KOMPAS.Application.5");
             if (kompas != null) return kompas;
             throw new SystemException("Проблема подключения к Kompas!");
         }
 
-        private static object CreateApplicationObject(string progId)
+        private static dynamic CreateApplicationObject(string progId)
         {
             try
             {
-                object obj = Activator.CreateInstance(Type.GetTypeFromProgID(progId) /*Type.GetTypeFromCLSID(new Guid("FBE002A6-1E06-4703-AEC5-9AD8A10FA1FA"))*/);
+                dynamic obj = Activator.CreateInstance(Type.GetTypeFromProgID(progId));
                 return obj;
             }
             catch
@@ -59,9 +59,9 @@ namespace Saharok.Model
             }
         }
 
-        private static object GetApplicationObject(string progId)
+        private static dynamic GetApplicationObject(string progId)
         {
-            object obj = null;
+            dynamic obj = null;
             try
             {
                 obj = Marshal.GetActiveObject(progId);

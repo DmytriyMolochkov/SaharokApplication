@@ -6,18 +6,18 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using Newtonsoft.Json;
+using System.Threading;
 
 namespace SaharokServer.Server.Database
 {
     public static class Logs
     {
         private static object _lock = new Object();
-        public static void Connection(ref User user, ref SessionUser session)
+        public static User Connection(User user, SessionUser session, ServerObject server)
         {
-
             lock (_lock)
             {
-                using (ApplicationContext db = new ApplicationContext())
+                using (ApplicationContext db = new ApplicationContext(server.DBname))
                 {
                     User existingUser = null;
                     foreach (var u in db.User)
@@ -31,18 +31,14 @@ namespace SaharokServer.Server.Database
 
                     if (existingUser != null)
                     {
-
                         existingUser.LastIP = user.LastIP;
                         existingUser.LastConnection = user.LastConnection;
-                        if (ServerObject.ServerNumber == 1)
-                        {
+                        if (server.ServerNumber % 2 > 0)
                             existingUser.IsOnlineServer1 = true;
-                        }
-                        else if (ServerObject.ServerNumber == 2)
-                        {
+                        else
                             existingUser.IsOnlineServer2 = true;
-                        }
-                        session = new SessionUser(existingUser);
+
+                        session.Start(existingUser, server.ServerNumber);
                         db.SessionUser.Add(session);
                         user = existingUser;
                     }
@@ -50,32 +46,30 @@ namespace SaharokServer.Server.Database
                     {
                         user.FirstIP = user.LastIP;
                         user.FirstConnection = user.LastConnection;
-                        if (ServerObject.ServerNumber == 1)
-                        {
+                        if (server.ServerNumber % 2 > 0)
                             user.IsOnlineServer1 = true;
-                        }
-                        else if (ServerObject.ServerNumber == 2)
-                        {
+                        else
                             user.IsOnlineServer2 = true;
-                        }
-                        session = new SessionUser(user);
+
+                        session.Start(user, server.ServerNumber);
                         db.User.Add(user);
                         db.SessionUser.Add(session);
                     }
                     db.SaveChanges();
+                    return user;
                 }
             }
         }
 
-        public static void Connection(ref Admin admin, ref SessionAdmin session)
+        public static Admin Connection(Admin admin, SessionAdmin session, ServerObject server)
         {
 
             lock (_lock)
             {
-                using (ApplicationContext db = new ApplicationContext())
+                using (ApplicationContext db = new ApplicationContext(server.DBname))
                 {
                     Admin existingAdmin = db.Admin.Find(1);
-                    if(existingAdmin != null)
+                    if (existingAdmin != null)
                     {
                         existingAdmin.NowHWID = admin.NowHWID;
                         existingAdmin.NowIP = admin.NowIP;
@@ -106,44 +100,45 @@ namespace SaharokServer.Server.Database
                         db.User.Add(newUser);
                         existingUser = newUser;
                     }
-                    session = new SessionAdmin(admin, existingUser);
+                    session.Start(admin, existingUser, server.ServerNumber);
                     db.SessionAdmin.Add(session);
+                    db.SaveChanges();
+                    return admin;
+                }
+            }
+        }
+
+        public static void SuccessfulLogin(Admin admin, SessionAdmin session, ServerObject server)
+        {
+            lock (_lock)
+            {
+                using (ApplicationContext db = new ApplicationContext(server.DBname))
+                {
+                    session.Login(admin);
+                    db.SessionAdmin.Update(session);
                     db.SaveChanges();
                 }
             }
         }
 
-        public static void SuccessfulLogin(ref Admin admin, ref SessionAdmin session)
-        {
-            using (ApplicationContext db = new ApplicationContext())
-            {
-                session.Login(ref admin);
-                db.SessionAdmin.Update(session);
-                //db.Admin.Update(admin);
-                db.SaveChanges();
-            }
-        }
-
-        public static void Disconnection(ref User user, ref SessionUser session)
+        public static void Disconnection(SessionUser session, ServerObject server)
         {
             lock (_lock)
             {
-
-                using (ApplicationContext db = new ApplicationContext())
+                using (ApplicationContext db = new ApplicationContext(server.DBname))
                 {
-                    if (user != null && session != null)
+                    if (session != null)
                     {
-                        user = db.User.Find(user.ID);
                         int sessionID = session.ID;
-                        int i = 0;
+                        int count = 0;
                         do
                         {
                             session = db.SessionUser.Find(sessionID);
-                            i++;
-                        } while (session == null && i < 100);
+                            count++;
+                        } while (session == null && count < 100);
                         if (session == null)
                             return;
-                        session.Disconnect(ref user);
+                        session.Disconnect();
                         db.SessionUser.Update(session);
                         db.SaveChanges();
                     }
@@ -151,25 +146,24 @@ namespace SaharokServer.Server.Database
             }
         }
 
-        public static void Disconnection(ref Admin admin, ref SessionAdmin session)
+        public static void Disconnection(SessionAdmin session, ServerObject server)
         {
             lock (_lock)
             {
-                using (ApplicationContext db = new ApplicationContext())
+                using (ApplicationContext db = new ApplicationContext(server.DBname))
                 {
-                    if (admin != null && session != null)
+                    if (session != null)
                     {
-                        admin = db.Admin.Find(admin.ID);
                         int sessionID = session.ID;
-                        int i = 0;
+                        int count = 0;
                         do
                         {
                             session = db.SessionAdmin.Find(sessionID);
-                            i++;
-                        } while (session == null && i < 100);
-                            if (session == null)
+                            count++;
+                        } while (session == null && count < 100);
+                        if (session == null)
                             return;
-                        session.Disconnect(ref admin);
+                        session.Disconnect();
                         db.SessionAdmin.Update(session);
                         db.SaveChanges();
                     }
@@ -177,14 +171,15 @@ namespace SaharokServer.Server.Database
             }
         }
 
-        public static void ClientRequest(ref SessionUser session, ref RequestResponse request, object clientData)
+        public static SessionUser ClientRequest(SessionUser session, RequestResponse request, object clientData, ServerObject server)
         {
             lock (_lock)
             {
-                using (ApplicationContext db = new ApplicationContext())
+                using (ApplicationContext db = new ApplicationContext(server.DBname))
                 {
                     session = db.SessionUser.Find(session.ID);
-                    request = new RequestResponse(session);
+                    request.SessionUser = session;
+                    request.Time = DateTime.Now;
                     request.ClientRequest = JsonConvert.SerializeObject(clientData, Formatting.Indented, new JsonSerializerSettings
                     {
                         PreserveReferencesHandling = PreserveReferencesHandling.All
@@ -199,15 +194,16 @@ namespace SaharokServer.Server.Database
 
                     db.RequestResponse.Add(request);
                     db.SaveChanges();
+                    return session;
                 }
             }
         }
 
-        public static void ServerResponse(ref RequestResponse response, object serverData)
+        public static void ServerResponse(RequestResponse response, object serverData, ServerObject server)
         {
             lock (_lock)
             {
-                using (ApplicationContext db = new ApplicationContext())
+                using (ApplicationContext db = new ApplicationContext(server.DBname))
                 {
                     response.ServerResponse = JsonConvert.SerializeObject(serverData, Formatting.Indented, new JsonSerializerSettings
                     {
@@ -219,11 +215,11 @@ namespace SaharokServer.Server.Database
             }
         }
 
-        public static void ServerBannedResponse(ref RequestResponse response, string message)
+        public static void ServerBannedResponse(RequestResponse response, string message, ServerObject server)
         {
             lock (_lock)
             {
-                using (ApplicationContext db = new ApplicationContext())
+                using (ApplicationContext db = new ApplicationContext(server.DBname))
                 {
                     response.ServerResponse = message;
                     BannedResponse bannedResponse = new BannedResponse(response);
@@ -234,11 +230,11 @@ namespace SaharokServer.Server.Database
             }
         }
 
-        public static void ServerErrorResponse(ref RequestResponse response, string message)
+        public static void ServerErrorResponse(RequestResponse response, string message, ServerObject server)
         {
             lock (_lock)
             {
-                using (ApplicationContext db = new ApplicationContext())
+                using (ApplicationContext db = new ApplicationContext(server.DBname))
                 {
                     response.ServerResponse = message;
                     ErrorResponse errorResponse = new ErrorResponse(response);
@@ -249,24 +245,25 @@ namespace SaharokServer.Server.Database
             }
         }
 
-        public static void ErrorUser(ref SessionUser session, Exception ex)
+        public static void ErrorUser(SessionUser session, Exception exception, ServerObject server)
         {
             lock (_lock)
             {
-                using (ApplicationContext db = new ApplicationContext())
+
+                using (ApplicationContext db = new ApplicationContext(server.DBname))
                 {
                     if (session != null)
                     {
                         int sessionID = session.ID;
-                        int i = 0;
+                        int count = 0;
                         do
                         {
                             session = db.SessionUser.Find(sessionID);
-                            i++;
-                        } while (session == null && i < 100);
-                            if (session == null)
+                            count++;
+                        } while (session == null && count < 100);
+                        if (session == null)
                             return;
-                        ErrorUser errorUser = new ErrorUser(session, ex);
+                        ErrorUser errorUser = new ErrorUser(session, exception);
                         db.ErrorUser.Add(errorUser);
                         db.SaveChanges();
                     }
@@ -274,24 +271,24 @@ namespace SaharokServer.Server.Database
             }
         }
 
-        public static void ErrorAdmin(ref SessionAdmin session, Exception ex)
+        public static void ErrorAdmin(SessionAdmin session, Exception exception, ServerObject server)
         {
             lock (_lock)
             {
-                using (ApplicationContext db = new ApplicationContext())
+                using (ApplicationContext db = new ApplicationContext(server.DBname))
                 {
                     if (session != null)
                     {
                         int sessionID = session.ID;
-                        int i = 0;
+                        int count = 0;
                         do
                         {
                             session = db.SessionAdmin.Find(sessionID);
-                            i++;
-                        } while (session == null && i < 100);
+                            count++;
+                        } while (session == null && count < 100);
                         if (session == null)
                             return;
-                        ErrorAdmin errorAdmin = new ErrorAdmin(session, ex);
+                        ErrorAdmin errorAdmin = new ErrorAdmin(session, exception);
                         db.ErrorAdmin.Add(errorAdmin);
                         db.SaveChanges();
                     }
@@ -299,15 +296,35 @@ namespace SaharokServer.Server.Database
             }
         }
 
-        public static void ErrorServerObject(Exception ex)
+        public static void ErrorServerObject(Exception exception, ServerObject server)
         {
             lock (_lock)
             {
-                using (ApplicationContext db = new ApplicationContext())
+                using (ApplicationContext db = new ApplicationContext(server.DBname))
                 {
-                    ErrorServerObject errorServerObject = new ErrorServerObject(ex);
+                    ErrorServerObject errorServerObject = new ErrorServerObject(exception, server.ServerNumber);
                     db.ErrorServerObject.Add(errorServerObject);
                     db.SaveChanges();
+                }
+            }
+        }
+
+        public static void TryExecute(Action action)
+        {
+            int i = 0;
+            while (true)
+            {
+                try
+                {
+                    action();
+                    return;
+                }
+                catch (Exception ex)
+                {
+
+                    if (++i == 20)
+                        throw ex;
+                    Thread.Sleep(200);
                 }
             }
         }

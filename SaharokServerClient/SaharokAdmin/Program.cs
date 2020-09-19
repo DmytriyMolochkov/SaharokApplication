@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using CommandLine;
 using CommandLine.Text;
 using System.Threading;
+using System.Configuration;
 
 namespace SaharokAdmin
 {
@@ -17,13 +18,16 @@ namespace SaharokAdmin
         {
             try
             {
-                ClientObject ClientObject1 = new ClientObject("127.0.0.1", 8909, 1); /*109.68.215.3*/
-                ClientObject ClientObject2 = new ClientObject("127.0.0.1", 8908, 2); /*5.23.54.220*/
-                ClientObject1.Connect(true);
-                ClientObject2.Connect(true);
+                List<ClientObject> clients = new List<ClientObject>();
+                var serversConfig = (ServersConfigSection)ConfigurationManager.GetSection("ProjectServers");
+                foreach (ServerElement sc in serversConfig.Servers)
+                {
+                    ClientObject client = new ClientObject(sc.IP, sc.AdminPort, sc.ServerNumber);
+                    clients.Add(client);
+                    client.Connect(true);
+                }
 
-                Thread.Sleep(4000);
-                Connector connector = new Connector(new ClientObject[] { ClientObject1, ClientObject2 });
+                Connector connector = new Connector(clients.ToArray());
                 Console.WriteLine("Войдите на сервера: ");
                 var lgOptions = new LgOptions();
                 lgOptions.servers = new List<int>();

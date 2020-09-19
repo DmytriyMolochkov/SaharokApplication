@@ -25,14 +25,14 @@ namespace ObjectsProjectServer
         public Project Project { get; set; }
         public ObservableCollection<Section> Sections { get; set; }
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         protected TypeDocumentation(SerializationInfo info, StreamingContext context)
         {
             FieldsSerializble.GetValue(this, info);
         }
 
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
         {
             FieldsSerializble.AddValue(this, info);

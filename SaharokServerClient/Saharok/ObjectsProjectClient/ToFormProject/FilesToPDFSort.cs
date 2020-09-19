@@ -17,7 +17,8 @@ namespace Saharok
         public List<FileToProject> FilesToProjectfromWord = new List<FileToProject>();
         public List<FileToProject> FilesToProjectfromExcel = new List<FileToProject>();
         public List<FileToProject> FilesToProjectfromKompas = new List<FileToProject>();
-        public List<FileToProject> FilesToProjectfromAutoCad = new List<FileToProject>();
+        public List<FileToProject> FilesToProjectfromAutoCAD = new List<FileToProject>();
+        public List<FileToProject> FilesToProjectfromNanoCAD = new List<FileToProject>();
 
         private List<FileToProject> FilesWithExtensionError = new List<FileToProject>();
         private List<FileToProject> FilesWithNameError = new List<FileToProject>();
@@ -53,13 +54,13 @@ namespace Saharok
             return AllSectionsToProject;
         }
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         protected FilesToPDFSort(SerializationInfo info, StreamingContext context)
         {
             FieldsSerializble.GetValue(this, info);
         }
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
         {
             FieldsSerializble.AddValue(this, info);

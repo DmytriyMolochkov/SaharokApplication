@@ -5,19 +5,22 @@ using System.Linq;
 using SaharokServer.Server.Database;
 using Microsoft.EntityFrameworkCore;
 using ObjectsProjectServer;
+using System.Threading;
+using System.Configuration;
 
 namespace SaharokServer
 {
     class Program
     {
-        static ServerObject server = null; // сервер
+        static ManualResetEvent _event = new ManualResetEvent(false);
+
         static void Main(string[] args)
         {
             try
             {
                 //using (ApplicationContext db = new ApplicationContext())
                 //{
-                //    db.Database.ExecuteSqlRaw(@"CREATE VIEW view_user AS
+                //    db.Database.ExecuteSqlRaw(@"CREATE OR REPLACE VIEW view_user AS
                 //                                SELECT u.ID AS ID,
                 //                                u.HWID AS HWID,
                 //                                u.NamePC AS NamePC,
@@ -36,7 +39,7 @@ namespace SaharokServer
 
                 //using (ApplicationContext db = new ApplicationContext())
                 //{
-                //    db.Database.ExecuteSqlRaw(@"CREATE VIEW view_admin AS
+                //    db.Database.ExecuteSqlRaw(@"CREATE OR REPLACE VIEW view_admin AS
                 //                            SELECT a.ID AS ID,
                 //                            a.Login AS Login,
                 //                            a.Password AS Password,
@@ -53,7 +56,7 @@ namespace SaharokServer
 
                 //using (ApplicationContext db = new ApplicationContext())
                 //{
-                //    db.Database.ExecuteSqlRaw(@"CREATE VIEW view_session_user AS
+                //    db.Database.ExecuteSqlRaw(@"CREATE OR REPLACE VIEW view_session_user AS
                 //                                SELECT s.ID AS SessionID,
                 //                                u.NamePC AS NamePC,
                 //                                u.NameUser AS NameUser,
@@ -70,7 +73,7 @@ namespace SaharokServer
 
                 //using (ApplicationContext db = new ApplicationContext())
                 //{
-                //    db.Database.ExecuteSqlRaw(@"CREATE VIEW view_session_admin AS
+                //    db.Database.ExecuteSqlRaw(@"CREATE OR REPLACE VIEW view_session_admin AS
                 //                                SELECT s.ID AS ID,
                 //                                a.Login AS Login,
                 //                                u.NamePC AS NamePC,
@@ -90,7 +93,7 @@ namespace SaharokServer
 
                 //using (ApplicationContext db = new ApplicationContext())
                 //{
-                //    db.Database.ExecuteSqlRaw(@"CREATE VIEW view_request_response AS
+                //    db.Database.ExecuteSqlRaw(@"CREATE OR REPLACE VIEW view_request_response AS
                 //                                SELECT r.ID AS ID,
                 //                                r.SessionID AS SessionID,
                 //                                u.NamePC AS NamePC,
@@ -111,7 +114,7 @@ namespace SaharokServer
 
                 //using (ApplicationContext db = new ApplicationContext())
                 //{
-                //    db.Database.ExecuteSqlRaw(@"CREATE VIEW view_error_user AS
+                //    db.Database.ExecuteSqlRaw(@"CREATE OR REPLACE VIEW view_error_user AS
                 //                                SELECT e.ID AS ID,
                 //                                e.SessionID AS SessionID,
                 //                                u.NamePC AS NamePC,
@@ -128,7 +131,7 @@ namespace SaharokServer
 
                 //using (ApplicationContext db = new ApplicationContext())
                 //{
-                //    db.Database.ExecuteSqlRaw(@"CREATE VIEW view_error_admin AS
+                //    db.Database.ExecuteSqlRaw(@"CREATE OR REPLACE VIEW view_error_admin AS
                 //                                SELECT e.ID AS ID,
                 //                                e.SessionID AS SessionID,
                 //                                a.Login AS Login,
@@ -147,7 +150,7 @@ namespace SaharokServer
 
                 //using (ApplicationContext db = new ApplicationContext())
                 //{
-                //    db.Database.ExecuteSqlRaw(@"CREATE VIEW view_error_response AS
+                //    db.Database.ExecuteSqlRaw(@"CREATE OR REPLACE VIEW view_error_response AS
                 //                                SELECT e.ID AS ID,
                 //                                e.RequestResponseID AS RequestResponseID,
                 //                                r.SessionID AS SessionID,
@@ -170,7 +173,7 @@ namespace SaharokServer
 
                 //using (ApplicationContext db = new ApplicationContext())
                 //{
-                //    db.Database.ExecuteSqlRaw(@"CREATE VIEW view_error_server_object AS
+                //    db.Database.ExecuteSqlRaw(@"CREATE OR REPLACE VIEW view_error_server_object AS
                 //                                SELECT e.ID AS ID,
                 //                                e.Time AS RTime,
                 //                                e.ErrorMessage AS ErrorMessage,
@@ -182,7 +185,7 @@ namespace SaharokServer
 
                 //using (ApplicationContext db = new ApplicationContext())
                 //{
-                //    db.Database.ExecuteSqlRaw(@"CREATE VIEW view_banned_response AS
+                //    db.Database.ExecuteSqlRaw(@"CREATE OR REPLACE VIEW view_banned_response AS
                 //                                SELECT e.ID AS ID,
                 //                                e.RequestResponseID AS RequestResponseID,
                 //                                r.SessionID AS SessionID,
@@ -201,29 +204,53 @@ namespace SaharokServer
                 //                                GROUP BY e.ID");
                 //    db.SaveChanges();
                 //}
-
-                server = new ServerObject();
-                using (ApplicationContext db = new ApplicationContext()) // проверка на ошибочно не обновлённые данные о состоянии сессий БД
+                var serversConfig = (ServersConfigSection)ConfigurationManager.GetSection("ProjectServers");
+                foreach(ServerElement sc in serversConfig.Servers)
                 {
-                    var sessionUserOnline = db.SessionUser
-                        .Where(s => s.IsOnline == true && s.ServerNumber == ServerObject.ServerNumber)
-                        .ForEachImmediate(s => s.IsOnline = false);
+                    ServerObject server = new ServerObject(sc.ServerNumber, sc.UserPort, sc.AdminPort, sc.AllowUsingNewClient, sc.DBname);
+                    using (ApplicationContext db = new ApplicationContext(server.DBname)) // проверка на ошибочно не обновлённые данные о состоянии сессий БД
+                    {
+                        var sessionUserOnline = db.SessionUser
+                            .Where(s => s.IsOnline == true && s.ServerNumber == server.ServerNumber)
+                            .ForEachImmediate(s => s.IsOnline = false);
 
-                    var sessionAdminOnline = db.SessionAdmin
-                        .Where(s => s.IsOnline == true || s.IsSuccessfulLogin == true && s.ServerNumber == ServerObject.ServerNumber)
-                        .ForEachImmediate(s =>
-                        {
-                            s.IsOnline = false;
-                            s.IsSuccessfulLogin = false;
-                        });
-                    db.SessionUser.UpdateRange(sessionUserOnline);
-                    db.SessionAdmin.UpdateRange(sessionAdminOnline);
-                    db.SaveChanges();
+                        var sessionAdminOnline = db.SessionAdmin
+                            .Where(s => s.IsOnline == true || s.IsSuccessfulLogin == true && s.ServerNumber == server.ServerNumber)
+                            .ForEachImmediate(s =>
+                            {
+                                s.IsOnline = false;
+                                s.IsSuccessfulLogin = false;
+                            });
+                        db.SessionUser.UpdateRange(sessionUserOnline);
+                        db.SessionAdmin.UpdateRange(sessionAdminOnline);
+                        db.SaveChanges();
+                    }
+                    server.ListenClientAsync();
+                    server.ListenAdminAsync();
                 }
+                //ServerObject server = new ServerObject(Convert.ToInt32(ConfigurationManager.AppSettings["ServerNumber"]), Convert.ToInt32(ConfigurationManager.AppSettings["UserPort"]), Convert.ToInt32(ConfigurationManager.AppSettings["AdminPort"]), Convert.ToBoolean(ConfigurationManager.AppSettings["AllowUsingNewClient"]), (string)(ConfigurationManager.AppSettings["DBname"]));
+                //using (ApplicationContext db = new ApplicationContext(server.DBname)) // проверка на ошибочно не обновлённые данные о состоянии сессий БД
+                //{
+                //    var sessionUserOnline = db.SessionUser
+                //        .Where(s => s.IsOnline == true && s.ServerNumber == server.ServerNumber)
+                //        .ForEachImmediate(s => s.IsOnline = false);
+
+                //    var sessionAdminOnline = db.SessionAdmin
+                //        .Where(s => s.IsOnline == true || s.IsSuccessfulLogin == true && s.ServerNumber == server.ServerNumber)
+                //        .ForEachImmediate(s =>
+                //        {
+                //            s.IsOnline = false;
+                //            s.IsSuccessfulLogin = false;
+                //        });
+                //    db.SessionUser.UpdateRange(sessionUserOnline);
+                //    db.SessionAdmin.UpdateRange(sessionAdminOnline);
+                //    db.SaveChanges();
+                //}
 
 
-                server.ListenClientAsync();
-                server.ListenAdmin();
+                //server.ListenClientAsync();
+                //server.ListenAdminAsync();
+                _event.WaitOne();
             }
             catch (Exception ex)
             {

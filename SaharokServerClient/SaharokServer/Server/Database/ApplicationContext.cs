@@ -34,8 +34,11 @@ namespace SaharokServer.Server.Database
         public DbSet<ViewSessionAdmin> ViewErrorResponse { get; set; }
         public DbSet<ViewSessionAdmin> ViewBannedResponse { get; set; }
 
-        public ApplicationContext()
+        public string Name { get; set; }
+
+        public ApplicationContext(string name)
         {
+            Name = name;
             Database.EnsureCreated();
         }
 
@@ -43,8 +46,8 @@ namespace SaharokServer.Server.Database
         {
             optionsBuilder
             .UseLazyLoadingProxies()
-            .UseMySQL("server=localhost;UserId=qwe;Password=qwe;database=saharok;");
-            //.UseMySQL("server=185.104.114.109;UserId=root;Password=3J*3h1[vFeF(03_+z;database=saharok;");
+            //.UseMySQL("server=localhost;UserId=qwe;Password=qwe;database=saharok;");
+            .UseMySQL($"server=185.104.114.109;UserId=root;Password=3J*3h1[vFeF(03_+z;database={Name};");
         }
 
 

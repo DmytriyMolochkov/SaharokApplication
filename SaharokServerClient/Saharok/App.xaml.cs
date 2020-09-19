@@ -8,10 +8,14 @@ using System.Windows;
 using Saharok.View;
 using Saharok.ViewModel;
 using Saharok.Model;
-using Microsoft.Build.Tasks.Deployment.ManifestUtilities;
+//using Microsoft.Build.Tasks.Deployment.ManifestUtilities;
 using System.IO;
 using Saharok.Model.Client;
 using System.Threading;
+using System.Xml;
+using System.Security.Permissions;
+using System.Runtime.Serialization;
+using System.Text;
 
 namespace Saharok
 {
@@ -21,7 +25,7 @@ namespace Saharok
     public partial class App : Application
     {
         public static MainWindowView window { get; set; }
-        
+
 
         private void Application_Startup(object sender, StartupEventArgs e)
         {
@@ -37,12 +41,17 @@ namespace Saharok
                 MessageBox.Show("Запустите Saharok.exe от имени Администратора для настройки ассоциаций Windows.", "Ошибка доступа к реестру");
             }
 
+            var ex = false;
+
             window.Topmost = true;
             window.Show();
             //window.Activate();
             window.Topmost = false;
-
-            window.Closed += (object _sender, EventArgs _e) => ((MainWindowViewModel)window.DataContext).AbortProcess();
+            window.Closed += (object _sender, EventArgs _e) =>
+            {
+                ((MainWindowViewModel)window.DataContext).AbortProcess();
+                ((MainWindowViewModel)window.DataContext).CloseConnection();
+            };
         }
     }
 }

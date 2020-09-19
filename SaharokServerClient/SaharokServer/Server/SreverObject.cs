@@ -9,6 +9,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Configuration;
 
 namespace SaharokServer
 {
@@ -18,12 +19,21 @@ namespace SaharokServer
         public TcpListener tcpListenerAdmin; // сервер для прослушивания
         public List<ClientObject> clients = new List<ClientObject>(); // все подключения
         public List<ClientObject> admins = new List<ClientObject>(); // все подключения
-        private static object _lock = new Object();
-        public static int ServerNumber { get; set; } = Convert.ToInt32(System.Configuration.ConfigurationSettings.AppSettings["ServerNumber"]);
-        public static int UserPort { get; set; } = Convert.ToInt32(System.Configuration.ConfigurationSettings.AppSettings["UserPort"]);
-        public static int AdminPort { get; set; } = Convert.ToInt32(System.Configuration.ConfigurationSettings.AppSettings["AdminPort"]);
+        private object _lock = new Object();
+        public int ServerNumber { get; set; }
+        public int UserPort { get; set; }
+        public int AdminPort { get; set; }
+        public bool AllowUsingNewClient { get; set; }
+        public string DBname { get; set; }
 
-
+        public ServerObject(int serverNumber, int userPort, int adminPort, bool allowUsingNewClient, string dbName)
+        {
+            ServerNumber = serverNumber;
+            UserPort = userPort;
+            AdminPort = adminPort;
+            AllowUsingNewClient = allowUsingNewClient;
+            DBname = dbName;
+        }
         protected internal void AddConnectionClient(ClientObject clientObject)
         {
             lock (_lock)
@@ -69,7 +79,7 @@ namespace SaharokServer
         {
             try
             {
-                tcpListenerClient = new TcpListener(IPAddress.Any, UserPort); /*8889*/
+                tcpListenerClient = new TcpListener(IPAddress.Any, UserPort);
                 tcpListenerClient.Start();
                 while (true)
                 {
@@ -82,19 +92,18 @@ namespace SaharokServer
             }
             catch (Exception ex)
             {
-                Logs.ErrorServerObject(ex);
+                Logs.TryExecute(()=>Logs.ErrorServerObject(ex, this));
                 if (!(ex is ObjectDisposedException))
                 {
                     DisconnectClients();
                     Thread.Sleep(60000);
-                }
-                if (ex.Message != "Cannot access a disposed object.\r\nObject name: 'System.Net.Sockets.Socket'.")
                     ListenClientAsync();
+                }
             }
         }
 
         // прослушивание входящих подключений клентов
-        protected internal void ListenAdmin()
+        protected internal async Task ListenAdminAsync()
         {
             try
             {
@@ -102,7 +111,7 @@ namespace SaharokServer
                 tcpListenerAdmin.Start();
                 while (true)
                 {
-                    TcpClient tcpClient = tcpListenerAdmin.AcceptTcpClient();
+                    TcpClient tcpClient = await Task.Run(() => tcpListenerAdmin.AcceptTcpClientAsync());
                     ClientObject clientObject = new ClientObject(tcpClient, this, true);
                     Thread clientThread = new Thread(new ThreadStart(clientObject.ProcessAdmin));
                     clientThread.Start();
@@ -111,14 +120,14 @@ namespace SaharokServer
             }
             catch (Exception ex)
             {
-                Logs.ErrorServerObject(ex);
+                Logs.TryExecute(()=>Logs.ErrorServerObject(ex, this));
                 if (!(ex is ObjectDisposedException))
                 {
                     DisconnectAdmins();
                     Thread.Sleep(60000);
                 }
                 if (ex.Message != "Cannot access a disposed object.\r\nObject name: 'System.Net.Sockets.Socket'.")
-                    ListenAdmin();
+                    ListenAdminAsync();
             }
         }
 

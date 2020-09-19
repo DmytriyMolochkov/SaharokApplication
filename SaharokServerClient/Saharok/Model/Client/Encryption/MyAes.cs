@@ -1,5 +1,4 @@
-﻿using Microsoft.Office.Core;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -146,6 +145,8 @@ namespace Saharok.Model.Client.Encryption
             {
                 using (MemoryStream msDecrypt = new MemoryStream((byte[])Formatter.Deserialize(stream)))
                 {
+                    if (msDecrypt.Length == 0)
+                        throw new Exception("Пришёл пустой поток");
                     using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, Decryptor, CryptoStreamMode.Read))
                     {
                         return Formatter.Deserialize(csDecrypt);

@@ -68,7 +68,8 @@ namespace Saharok
                 if (Directory.Exists(e.FullPath))
                 {
                     string name = System.IO.Path.GetFileName(e.Name);
-                    Project.Invoke(() => Sections.Add(new Section(e.FullPath, name, this)));
+                    if (Sections.Where(s => s.Name == name).Count() == 0)
+                        Project.Invoke(() => Sections.Add(new Section(e.FullPath, name, this)));
                 }
             }
             else
@@ -140,13 +141,13 @@ namespace Saharok
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         protected TypeDocumentation(SerializationInfo info, StreamingContext context)
         {
             FieldsSerializble.GetValue(this, info);
         }
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
         {
             FieldsSerializble.AddValue(this, info);

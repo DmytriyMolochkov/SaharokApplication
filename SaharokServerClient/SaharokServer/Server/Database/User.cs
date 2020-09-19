@@ -5,6 +5,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Net.Sockets;
 using SaharokServer.Encryption;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Configuration;
 
 namespace SaharokServer.Server.Database
 {
@@ -32,7 +33,7 @@ namespace SaharokServer.Server.Database
 
         }
 
-        public User(TcpClient tcpClient, NetworkStream nStream)
+        public User(TcpClient tcpClient, NetworkStream nStream, bool allowUsingNewClient)
         {
             if (nStream != null)
                 nStream.Flush();
@@ -44,7 +45,7 @@ namespace SaharokServer.Server.Database
             HWID = infoClient[0];
             NamePC = infoClient[1];
             LastIP = Convert.ToString(((System.Net.IPEndPoint)tcpClient.Client.RemoteEndPoint).Address);
-            AllowUsing = true;
+            AllowUsing = allowUsingNewClient;
         }
     }
 }

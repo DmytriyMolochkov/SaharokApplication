@@ -19,13 +19,13 @@ namespace Saharok
         public MethodPDFFile MethodPDFFile;
         public SectionToProject SectionToProject;
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         protected FileToProject(SerializationInfo info, StreamingContext context)
         {
             FieldsSerializble.GetValue(this, info);
         }
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
         {
             FieldsSerializble.AddValue(this, info);

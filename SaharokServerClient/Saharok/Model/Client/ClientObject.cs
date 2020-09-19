@@ -14,12 +14,12 @@ namespace Saharok.Model.Client
 {
     public class ClientObject : INotifyPropertyChanged
     {
-        private int Number;
-        private string Host;
-        private int Port;
-        private string HWID;
+        public int Number { get; set; }
+        private string Host { get; set; }
+        private int Port { get; set; }
+        private string HWID { get; set; }
         private readonly object _lock = new object();
-        TcpClient client;
+        public TcpClient client { get; set; }
         NetworkStream Nstream;
         EchoStream Estream;
         MyAes myAes;
@@ -109,7 +109,7 @@ namespace Saharok.Model.Client
                 while (!token.IsCancellationRequested)
                 {
                     long lastLength = Estream.Length;
-                    Thread.Sleep(5000);
+                    Thread.Sleep(10000);
                     if (lastLength == Estream.Length && !token.IsCancellationRequested)
                     {
                         Disconnect();
@@ -122,7 +122,7 @@ namespace Saharok.Model.Client
         {
             System.Threading.Tasks.Task.Run(() =>
             {
-                while (!client.Connected)
+                while ((!client?.Connected) ?? true)
                 {
                     try
                     {

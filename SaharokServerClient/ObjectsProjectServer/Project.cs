@@ -15,7 +15,10 @@ namespace ObjectsProjectServer
     {
         public string Title { get; set; }
         public string Path { get; set; }
-        public string PathEditableFiles { get; set; }
+        public string PathWorkingDirectory { get; set; }
+        public FoldersConfigInfo FoldersConfigInfo { get; set; }
+        public SectionNameTemplate SectionNameTemplate { get; set; }
+
         private string name;
         public string Name
         {
@@ -30,14 +33,14 @@ namespace ObjectsProjectServer
         }
         public ObservableCollection<TypeDocumentation> TypeDocumentations { get; set; }
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         protected Project(SerializationInfo info, StreamingContext context)
         {
             info = FieldsSerializble.GetValue(this, info, new string[] { "watcher" });
         }
 
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info = FieldsSerializble.AddValue(this, info, new string[] { "watcher" });

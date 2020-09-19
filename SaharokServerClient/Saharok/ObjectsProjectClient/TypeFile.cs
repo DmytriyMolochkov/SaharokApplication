@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -10,13 +11,14 @@ namespace Saharok
     [Serializable]
     public enum MethodPDFFile
     {
-        Kompas = 0,
-        Word = 1,
-        Excel = 2,
-        PDF = 3,
-        AutoCad = 4,
+        NoPDFMethod = 0,
+        Kompas = 1,
+        Word = 2,
+        Excel = 3,
+        PDF = 4,
+        AutoCAD = 5,
+        NanoCAD = 6,
         DontPDF = 10,
-        NoPDFMethod = 11
     }
 
     [Serializable]
@@ -28,48 +30,18 @@ namespace Saharok
 
     public static class TypeFile
     {
+        static Dictionary<MethodPDFFile, string[]> MethodExtensionPairs { get; set; } = new Dictionary<MethodPDFFile, string[]> {
+            { MethodPDFFile.PDF, ConfigurationManager.AppSettings["PDFExtensions"].Replace(" ", String.Empty).Split(',').Select(e => '.' + e).ToArray() },
+            { MethodPDFFile.Word, ConfigurationManager.AppSettings["WordExtensions"].Replace(" ", String.Empty).Split(',').Select(e => '.' + e).ToArray() },
+            { MethodPDFFile.Excel, ConfigurationManager.AppSettings["ExcelExtensions"].Replace(" ", String.Empty).Split(',').Select(e => '.' + e).ToArray() },
+            { MethodPDFFile.Kompas, ConfigurationManager.AppSettings["KompasExtensions"].Replace(" ", String.Empty).Split(',').Select(e => '.' + e).ToArray() },
+            { MethodPDFFile.AutoCAD, ConfigurationManager.AppSettings["AutoCADExtensions"].Replace(" ", String.Empty).Split(',').Select(e => '.' + e).ToArray() },
+            { MethodPDFFile.NanoCAD, ConfigurationManager.AppSettings["NanoCADExtensions"].Replace(" ", String.Empty).Split(',').Select(e => '.' + e).ToArray() },
+            { MethodPDFFile.DontPDF, ConfigurationManager.AppSettings["DontPDFExtensions"].Replace(" ", String.Empty).Split(',').Select(e => '.' + e).ToArray() },};
+
         public static MethodPDFFile ChooseMethodPDFFile(FileSection file)
         {
-            switch (Path.GetExtension(file.Path).ToLower())
-            {
-                case ".pdf":
-                    {
-                        return MethodPDFFile.PDF;
-                    }
-                case ".docm":
-                case ".doc":
-                case ".docx":
-                    {
-                        return MethodPDFFile.Word;
-                    }
-                case ".xlsm":
-                case ".xlsx":
-                case ".xls":
-                    {
-                        return MethodPDFFile.Excel;
-                    }
-                case ".cdw":
-                    {
-                        return MethodPDFFile.Kompas;
-                    }
-                case ".dwg":
-                    {
-                        //return MethodPDFFile.DontPDF;
-                        return MethodPDFFile.AutoCad;
-                    }
-                case ".png":
-                case ".bmp":
-                case ".jpeg":
-                case ".jpg":
-                case ".jfif":
-                    {
-                        return MethodPDFFile.DontPDF;
-                    }
-                default:
-                    {
-                        return MethodPDFFile.NoPDFMethod;
-                    }
-            }
+            return MethodExtensionPairs.FirstOrDefault(e => e.Value.Contains(Path.GetExtension(file.Path).ToLower())).Key;
         }
     }
 }

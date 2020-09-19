@@ -30,6 +30,7 @@ namespace SaharokServer.Server.Database
 
         public RequestResponse(SessionUser session)
         {
+            SessionID = session.ID;
             SessionUser = session;
             Time = DateTime.Now;
         }

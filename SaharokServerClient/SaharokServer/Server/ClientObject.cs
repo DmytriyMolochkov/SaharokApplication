@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Net.Http.Headers;
 using System.Net.Sockets;
+using System.Reflection;
+using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Cryptography;
 using System.Text;
@@ -23,7 +25,7 @@ namespace SaharokServer
         protected internal NetworkStream Nstream { get; private set; }
 
         public TcpClient TcpClient { get; set; }
-        private ServerObject Server { get; set; } // объект сервера
+        public ServerObject Server { get; set; } // объект сервера
 
         public ClientObject(TcpClient tcpClient, ServerObject serverObject, bool isAdmin = false)
         {
@@ -43,18 +45,17 @@ namespace SaharokServer
         public void ProcessUser()
         {
             User user = null; // для логов
-            SessionUser session = null; // для логов
+            SessionUser session = new SessionUser(); // для логов
             try
             {
                 Nstream = TcpClient.GetStream();
-                user = new User(TcpClient, Nstream);
-                Logs.Connection(ref user, ref session);
+                user = new User(TcpClient, Nstream, Server.AllowUsingNewClient);
+                Logs.TryExecute(() => user = Logs.Connection(user, session, Server));
 
                 while (true)
                 {
                     object data = null;
                     MyAes myAes = new MyAes();
-                    RequestResponse requestResponse = null;
 
                     if (Nstream != null)
                         Nstream.Flush();
@@ -62,13 +63,14 @@ namespace SaharokServer
                     myAes.GenerateParameters(); // генерируем симметричный ключ для общения с юзером
                     myAes.ExportParameters(Nstream);
                     data = myAes.DecryptFromStream(Nstream); // ожидаем пока придёт проект для обработки
-                    Logs.ClientRequest(ref session, ref requestResponse, data);
+                    RequestResponse requestResponse = new RequestResponse();
+                    Logs.TryExecute(() => session = Logs.ClientRequest(session, requestResponse, data, Server));
 
-                    if (!CheckUser(ref user)) // проверяем бан юзера
+                    if (!CheckUser(user)) // проверяем бан юзера
                     {
-                        string message = "Мы ходим вокруг опунции, опунции в пять часов утра.";
+                        string message = "Отказано в доступе. Пожалуйста, свяжитесь с разработчиком по почте saharok.application@gmail.com если это произошло по ошибке или вы заинтересованы в продукте.";
                         myAes.EncryptToStream(message, Nstream);
-                        Logs.ServerBannedResponse(ref requestResponse, message);
+                        Logs.TryExecute(() => Logs.ServerBannedResponse(requestResponse, message, Server));
                         continue;
                     }
 
@@ -79,13 +81,13 @@ namespace SaharokServer
                         filesToPDFSort = ((IFilesToProjectContainer)data).GetFilesToPDFSort();
                         myAes.EncryptToStream(InfoOfProcess.GetInstance(), Nstream);
                         myAes.EncryptToStream(filesToPDFSort, Nstream);
-                        Logs.ServerResponse(ref requestResponse, filesToPDFSort);
+                        Logs.TryExecute(() => Logs.ServerResponse(requestResponse, filesToPDFSort, Server));
                     }
                     else
                     {
                         string message = $"Полученный сервером объект не поддерживает интерфейс: {typeof(IFilesToProjectContainer).Name}.";
                         myAes.EncryptToStream(message, Nstream);
-                        Logs.ServerErrorResponse(ref requestResponse, message);
+                        Logs.TryExecute(() => Logs.ServerErrorResponse(requestResponse, message, Server));
                     }
                 }
             }
@@ -93,11 +95,11 @@ namespace SaharokServer
             {
                 Console.WriteLine(ex.Message);
 
-                if (!(ex is IOException))
+                if (!(ex is IOException || ex is SerializationException))
                 {
-                    Logs.ErrorUser(ref session, ex);
+                    Logs.TryExecute(() => Logs.ErrorUser(session, ex, Server));
                 }
-                Logs.Disconnection(ref user, ref session);
+                Logs.TryExecute(() => Logs.Disconnection(session, Server));
                 Server.RemoveConnectionClient(this.Id);
                 Close();
             }
@@ -106,156 +108,121 @@ namespace SaharokServer
         public void ProcessAdmin()
         {
             Admin admin = null; // для логов
-            SessionAdmin session = null; // для логов
+            SessionAdmin session = new SessionAdmin(); // для логов
             try
             {
                 Nstream = TcpClient.GetStream();
                 MyAes myAes = new MyAes();
                 admin = new Admin(TcpClient, Nstream, myAes);
-                myAes.EncryptToStream(ServerObject.ServerNumber, Nstream);
-                Logs.Connection(ref admin, ref session);
+                myAes.EncryptToStream(Server.ServerNumber, Nstream);
+                Logs.TryExecute(() => admin = Logs.Connection(admin, session, Server));
                 ListenerCommand listenerCommand = new ListenerCommand(this);
-                listenerCommand.Start(ref admin, ref session, myAes);
+                listenerCommand.Start(session, myAes, Server);
             }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.Message);
-                if (!(ex is IOException))
+                if (!(ex is IOException || ex is SerializationException))
                 {
-                    Logs.ErrorAdmin(ref session, ex);
+                    Logs.TryExecute(() => Logs.ErrorAdmin(session, ex, Server));
                 }
-                Logs.Disconnection(ref admin, ref session);
+                Logs.TryExecute(() => Logs.Disconnection(session, Server));
                 Server.RemoveConnectionAdmin(this.Id);
                 Close();
             }
         }
 
-        public void LogingAdmin(ref Admin admin, ref SessionAdmin session, MyAes myAes, string[] args)
+        public void LogingAdmin(Admin admin,SessionAdmin session, MyAes myAes, string[] args)
         {
             if (!session.IsSuccessfulLogin)
             {
                 if (admin.Login == args[0] && admin.Password == args[1] && admin.Login != null && admin.Password != null)
                 {
                     myAes.EncryptToStream(new string[] { true.ToString(),
-                        $"Вход на сервер №{ServerObject.ServerNumber} выполнен успешно.{Environment.NewLine}" +
+                        $"Вход на сервер №{Server.ServerNumber} выполнен успешно.{Environment.NewLine}" +
                         $"Последний вход был произведён: {admin.LastSuccessfulLogin.ToString()} со следующими данными:{Environment.NewLine}" +
                         $"IP: {admin.LastIP}{Environment.NewLine}" +
                         $"Name PC: {admin.LastNamePC}{Environment.NewLine}" +
                         $"HWID: {admin.LastHWID}"
                     }, Nstream);
-                    Logs.SuccessfulLogin(ref admin, ref session);
+                    Logs.TryExecute(() => Logs.SuccessfulLogin(admin, session, Server));
                 }
-                else myAes.EncryptToStream(new string[] { false.ToString(), $"Неудачный вход на сервер {ServerObject.ServerNumber}. Неверный логин или пароль." }, Nstream);
+                else myAes.EncryptToStream(new string[] { false.ToString(), $"Неудачный вход на сервер {Server.ServerNumber}. Неверный логин или пароль." }, Nstream);
 
             }
-            else myAes.EncryptToStream(new string[] { false.ToString(), $"Вы уже авторизованы на сервере №{ServerObject.ServerNumber}." }, Nstream);
+            else myAes.EncryptToStream(new string[] { false.ToString(), $"Вы уже авторизованы на сервере №{Server.ServerNumber}." }, Nstream);
         }
 
-        public void DisconnectClients(ref Admin admin, ref SessionAdmin session, MyAes myAes, string[] args)
+        public void DisconnectClients(SessionAdmin session, MyAes myAes, string[] args)
         {
             if (session.IsSuccessfulLogin)
             {
                 int UsersCount = Server.clients.Count();
                 Server.DisconnectClients();
                 myAes.EncryptToStream(new string[] { true.ToString(),
-                    $"Клиенты отключены на сервере №{ServerObject.ServerNumber}.{Environment.NewLine}" +
+                    $"Клиенты отключены на сервере №{Server.ServerNumber}.{Environment.NewLine}" +
                     $"Кол-во отключённых клиентов: {UsersCount}шт." }, Nstream);
             }
-            else myAes.EncryptToStream(new string[] { false.ToString(), $"Вы не авторизованы на сервере №{ServerObject.ServerNumber}." }, Nstream);
+            else myAes.EncryptToStream(new string[] { false.ToString(), $"Вы не авторизованы на сервере №{Server.ServerNumber}." }, Nstream);
         }
 
-        public void ListenClient(ref Admin admin, ref SessionAdmin session, MyAes myAes, string[] args)
+        public void ListenClient(Admin admin, SessionAdmin session, MyAes myAes, string[] args)
         {
             if (session.IsSuccessfulLogin)
             {
-                Server.ListenClientAsync();
-                myAes.EncryptToStream(new string[] { true.ToString(), $"Началось прослушивание клиентов сервере №{ServerObject.ServerNumber}." }, Nstream);
+                if(!(bool)typeof(TcpListener).GetProperty("Active", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(Server.tcpListenerClient))
+                {
+                    Server.ListenClientAsync();
+                    myAes.EncryptToStream(new string[] { true.ToString(), $"Началось прослушивание клиентов сервере №{Server.ServerNumber}." }, Nstream);
+                }
+                else myAes.EncryptToStream(new string[] { false.ToString(), $"Клиенты на сервере №{Server.ServerNumber} уже прослушиваются." }, Nstream);
             }
-            else myAes.EncryptToStream(new string[] { false.ToString(), $"Вы не авторизованы на сервере №{ServerObject.ServerNumber}." }, Nstream);
+            else myAes.EncryptToStream(new string[] { false.ToString(), $"Вы не авторизованы на сервере №{Server.ServerNumber}." }, Nstream);
         }
 
-        public void DisconnectAdmins(ref Admin admin, ref SessionAdmin session, MyAes myAes, string[] args)
+        public void DisconnectAdmins(Admin admin, SessionAdmin session, MyAes myAes, string[] args)
         {
             if (session.IsSuccessfulLogin)
             {
                 int AdminsCount = Server.admins.Count() - 1;
                 Server.DisconnectAdmins(Id);
                 myAes.EncryptToStream(new string[] { true.ToString(),
-                    $"Администраторы отключены на сервере №{ServerObject.ServerNumber}, кроме вас.{Environment.NewLine}" +
+                    $"Администраторы отключены на сервере №{Server.ServerNumber}, кроме вас.{Environment.NewLine}" +
                     $"Кол-во отключённых администраторов: {AdminsCount}шт." }, Nstream);
             }
-            else myAes.EncryptToStream(new string[] { false.ToString(), $"Вы не авторизованы на сервере №{ServerObject.ServerNumber}." }, Nstream);
+            else myAes.EncryptToStream(new string[] { false.ToString(), $"Вы не авторизованы на сервере №{Server.ServerNumber}." }, Nstream);
         }
 
-        public void ClientsCount(ref Admin admin, ref SessionAdmin session, MyAes myAes, string[] args)
+        public void ClientsCount(Admin admin, SessionAdmin session, MyAes myAes, string[] args)
         {
             if (session.IsSuccessfulLogin)
             {
                 int ClientsCount = Server.clients.Count();
-                myAes.EncryptToStream(new string[] { true.ToString(), $"Кол-во клиентов на сервере №{ServerObject.ServerNumber}: {ClientsCount}шт." }, Nstream);
+                myAes.EncryptToStream(new string[] { true.ToString(), $"Кол-во клиентов на сервере №{Server.ServerNumber}: {ClientsCount}шт." }, Nstream);
             }
-            else myAes.EncryptToStream(new string[] { false.ToString(), $"Вы не авторизованы на сервере №{ServerObject.ServerNumber}." }, Nstream);
+            else myAes.EncryptToStream(new string[] { false.ToString(), $"Вы не авторизованы на сервере №{Server.ServerNumber}." }, Nstream);
         }
 
-        public void AdminsCount(ref Admin admin, ref SessionAdmin session, MyAes myAes, string[] args)
+        public void AdminsCount(Admin admin, SessionAdmin session, MyAes myAes, string[] args)
         {
             if (session.IsSuccessfulLogin)
             {
                 int AdminsCount = Server.admins.Count();
                 int AdminsLoginCount;
-                using (ApplicationContext db = new ApplicationContext())
+                using (ApplicationContext db = new ApplicationContext(Server.DBname))
                 {
-                    AdminsLoginCount = db.SessionAdmin.Where(s => s.IsSuccessfulLogin && s.IsOnline && s.ServerNumber == ServerObject.ServerNumber).Count();
+                    AdminsLoginCount = db.SessionAdmin.Where(s => s.IsSuccessfulLogin && s.IsOnline && s.ServerNumber == Server.ServerNumber).Count();
                 }
                 myAes.EncryptToStream(new string[] { true.ToString(),
-                    $"Кол-во администраторов на сервере №{ServerObject.ServerNumber}: {AdminsCount}шт.{Environment.NewLine}" +
+                    $"Кол-во администраторов на сервере №{Server.ServerNumber}: {AdminsCount}шт.{Environment.NewLine}" +
                     $"Кол-во авторизованных администраторов: {AdminsLoginCount}шт." }, Nstream);
             }
-            else myAes.EncryptToStream(new string[] { false.ToString(), $"Вы не авторизованы на сервере №{ServerObject.ServerNumber}." }, Nstream);
+            else myAes.EncryptToStream(new string[] { false.ToString(), $"Вы не авторизованы на сервере №{Server.ServerNumber}." }, Nstream);
         }
 
-        //private bool CheckError(Exception ex)
-        //{
-        //    switch (ex.Message)
-        //    {
-        //        case ("Unable to read data from the transport connection: Удаленный хост принудительно разорвал существующее подключение.."):
-        //            {
-        //                return false;
-        //            }
-        //        case ("Unable to write data to the transport connection: Удаленный хост принудительно разорвал существующее подключение.."):
-        //            {
-        //                return false;
-        //            }
-        //        case ("Unable to write data to the transport connection: Программа на вашем хост-компьютере разорвала установленное подключение.."):
-        //            {
-        //                return false;
-        //            }
-        //        case ("Unable to read data from the transport connection: Операция блокирования прервана вызовом WSACancelBlockingCall.."):
-        //            {
-        //                return false;
-        //            }
-        //        case ("End of Stream encountered before parsing was completed."):
-        //            {
-        //                return false;
-        //            }
-        //        case ("Stream was not writable."):
-        //            {
-        //                return false;
-        //            }
-        //        //case ("An exception has been raised that is likely due to a transient failure. Consider enabling transient error resiliency by adding 'EnableRetryOnFailure()' to the 'UseMySql' call."):
-        //        //    {
-        //        //        return false;
-        //        //    }
-        //        default:
-        //            {
-        //                return true;
-        //            }
-        //    }
-        //}
-
-        private bool CheckUser(ref User user)
+        private bool CheckUser(User user)
         {
-            using (ApplicationContext db = new ApplicationContext()) // обновляем состояние юзера из базы
+            using (ApplicationContext db = new ApplicationContext(Server.DBname)) // обновляем состояние юзера из базы
             {
                 user = db.User.Find(user.ID);
             }
@@ -280,7 +247,7 @@ namespace SaharokServer
             this.clientObject = clientObject;
         }
         public abstract bool TryParse(string[] args);
-        public abstract void Execute(ref Admin admin, ref SessionAdmin session, MyAes myAes, string[] args);
+        public abstract void Execute(Admin admin, SessionAdmin session, MyAes myAes, string[] args);
     }
 
     class LgCommand : CommandBase
@@ -292,9 +259,9 @@ namespace SaharokServer
         {
             return args[0].ToLower() == "lg";
         }
-        public override void Execute(ref Admin admin, ref SessionAdmin session, MyAes myAes, string[] args)
+        public override void Execute(Admin admin,SessionAdmin session, MyAes myAes, string[] args)
         {
-            clientObject.LogingAdmin(ref admin, ref session, myAes, args.Skip(1).ToArray());
+            clientObject.LogingAdmin(admin, session, myAes, args.Skip(1).ToArray());
         }
     }
 
@@ -307,9 +274,9 @@ namespace SaharokServer
         {
             return args[0].ToLower() == "dc";
         }
-        public override void Execute(ref Admin admin, ref SessionAdmin session, MyAes myAes, string[] args)
+        public override void Execute(Admin admin, SessionAdmin session, MyAes myAes, string[] args)
         {
-            clientObject.DisconnectClients(ref admin, ref session, myAes, args.Skip(1).ToArray());
+            clientObject.DisconnectClients(session, myAes, args.Skip(1).ToArray());
         }
     }
 
@@ -322,9 +289,9 @@ namespace SaharokServer
         {
             return args[0].ToLower() == "lc";
         }
-        public override void Execute(ref Admin admin, ref SessionAdmin session, MyAes myAes, string[] args)
+        public override void Execute(Admin admin, SessionAdmin session, MyAes myAes, string[] args)
         {
-            clientObject.ListenClient(ref admin, ref session, myAes, args.Skip(1).ToArray());
+            clientObject.ListenClient(admin, session, myAes, args.Skip(1).ToArray());
         }
     }
 
@@ -337,9 +304,9 @@ namespace SaharokServer
         {
             return args[0].ToLower() == "da";
         }
-        public override void Execute(ref Admin admin, ref SessionAdmin session, MyAes myAes, string[] args)
+        public override void Execute(Admin admin, SessionAdmin session, MyAes myAes, string[] args)
         {
-            clientObject.DisconnectAdmins(ref admin, ref session, myAes, args.Skip(1).ToArray());
+            clientObject.DisconnectAdmins(admin, session, myAes, args.Skip(1).ToArray());
         }
     }
 
@@ -352,9 +319,9 @@ namespace SaharokServer
         {
             return args[0].ToLower() == "cc";
         }
-        public override void Execute(ref Admin admin, ref SessionAdmin session, MyAes myAes, string[] args)
+        public override void Execute(Admin admin, SessionAdmin session, MyAes myAes, string[] args)
         {
-            clientObject.ClientsCount(ref admin, ref session, myAes, args.Skip(1).ToArray());
+            clientObject.ClientsCount(admin, session, myAes, args.Skip(1).ToArray());
         }
     }
 
@@ -367,9 +334,9 @@ namespace SaharokServer
         {
             return args[0].ToLower() == "ac";
         }
-        public override void Execute(ref Admin admin, ref SessionAdmin session, MyAes myAes, string[] args)
+        public override void Execute(Admin admin, SessionAdmin session, MyAes myAes, string[] args)
         {
-            clientObject.AdminsCount(ref admin, ref session, myAes, args.Skip(1).ToArray());
+            clientObject.AdminsCount(admin, session, myAes, args.Skip(1).ToArray());
         }
     }
 
@@ -391,29 +358,27 @@ namespace SaharokServer
             };
         }
 
-        public void Start(ref Admin admin, ref SessionAdmin session, MyAes myAes)
+        public void Start(SessionAdmin session, MyAes myAes, ServerObject server)
         {
             while (true)
             {
                 try
                 {
-
-                    Execute(ref admin, ref session, myAes, (string[])myAes.DecryptFromStream(clientObject.Nstream));
-
+                    Execute(session, myAes, (string[])myAes.DecryptFromStream(clientObject.Nstream));
                 }
                 catch (Exception ex)
                 {
                     myAes.EncryptToStream(new string[] { false.ToString(), ex.Message }, clientObject.Nstream);
-                    Logs.ErrorAdmin(ref session, ex);
+                    Logs.TryExecute(() => Logs.ErrorAdmin(session, ex, server));
                 }
             }
         }
-        void Execute(ref Admin admin, ref SessionAdmin session, MyAes myAes, string[] args)
+        void Execute(SessionAdmin session, MyAes myAes, string[] args)
         {
             foreach (var com in commands)
                 if (com.TryParse(args))
                 {
-                    using (ApplicationContext db = new ApplicationContext()) // достаём состояние админа из базы
+                    using (ApplicationContext db = new ApplicationContext(clientObject.Server.DBname)) // достаём состояние админа из базы
                     {
                         int sessionID = session.ID;
                         int i = 0;
@@ -424,16 +389,8 @@ namespace SaharokServer
                         } while (session == null && i < 100);
                         if (session == null)
                             return;
-                        int adminID = admin.ID;
-                        i = 0;
-                        do
-                        {
-                            admin = db.Admin.Find(adminID);
-                            i++;
-                        } while (admin == null && i < 100);
-                        if (admin == null)
-                            return;
-                        com.Execute(ref admin, ref session, myAes, args);
+                        Admin admin = session.Admin;
+                        com.Execute(admin, session, myAes, args);
                         return;
                     }
                 }

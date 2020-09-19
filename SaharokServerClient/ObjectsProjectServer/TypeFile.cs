@@ -6,13 +6,14 @@ namespace ObjectsProjectServer
 {
     public enum MethodPDFFile
     {
-        Kompas = 0,
-        Word = 1,
-        Excel = 2,
-        PDF = 3,
-        AutoCad = 4,
+        NoPDFMethod = 0,
+        Kompas = 1,
+        Word = 2,
+        Excel = 3,
+        PDF = 4,
+        AutoCAD = 5,
+        NanoCAD = 6,
         DontPDF = 10,
-        NoPDFMethod = 11
     }
 
     public enum MethodFormFile

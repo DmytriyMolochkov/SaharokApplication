@@ -11,18 +11,10 @@ namespace Saharok.Model
     {
         public static void ClearFolder(string pathFolder)
         {
-            try
+            if (Directory.Exists(pathFolder))
             {
-                if (Directory.Exists(pathFolder))
-                {
-                    Directory.Delete(pathFolder, true);
-                    Directory.CreateDirectory(pathFolder);
-                }
-            }
-            catch (Exception ex)
-            {
-
-                throw ex;
+                Directory.Delete(pathFolder, true);
+                Directory.CreateDirectory(pathFolder);
             }
         }
     }

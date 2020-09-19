@@ -34,6 +34,7 @@ namespace Saharok
         {
             infoOfProcess.PropertyChanged = instance.PropertyChanged;
             instance = infoOfProcess;
+            instance.OnPropertyChanged(nameof(TotalFormsFiles));// обновим связанные данные на форме
         }
 
         public static void RefreshInstance()
@@ -129,13 +130,13 @@ namespace Saharok
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         protected InfoOfProcess(SerializationInfo info, StreamingContext context)
         {
             FieldsSerializble.GetValue(this, info);
         }
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
         {
             FieldsSerializble.AddValue(this, info);

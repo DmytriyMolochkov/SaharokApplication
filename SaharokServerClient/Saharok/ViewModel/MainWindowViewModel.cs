@@ -22,8 +22,8 @@ using System.Globalization;
 using System.Collections.Concurrent;
 using Saharok.Model.Client;
 using System.Runtime.Remoting.Channels;
-using Microsoft.Office.Interop.Word;
 using static Saharok.Model.FormProject;
+using System.Configuration;
 
 namespace Saharok.ViewModel
 {
@@ -31,16 +31,18 @@ namespace Saharok.ViewModel
     {
         public MainWindowViewModel()
         {
+            CheckConfigFile();
             IsProcessed = false;
             ApplicationVisibility = Model.FormProject.ApplicationVisibility;
-            ClientObject1 = new ClientObject("127.0.0.1", 8889, 1); /*109.68.215.3*/ /*127.0.0.1*/
+            PathDirectoryProject = "";
+            ClientObject1 = new ClientObject("127.0.0.1", 9111, 1); /*109.68.215.3*/ /*127.0.0.1*/
             ClientObject1.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer1Connect = ClientObject1.IsServerConnect;
-            ClientObject1.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer1Tip = $"Сервер №1 {(ClientObject1.IsServerConnect ? "подключён" : "отключён")}.";
+            ClientObject1.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer1Tip = $"Сервер №{ClientObject1.Number} {(ClientObject1.IsServerConnect ? "подключён" : "отключён")}.";
             ClientObject1.Connect(true);
-            ClientObject2 = new ClientObject("127.0.0.1", 8888, 2); /*5.23.54.220*/
+            ClientObject2 = new ClientObject("127.0.0.1", 9112, 2); /*5.23.54.220*/
             ClientObject2.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer2Connect = ClientObject2.IsServerConnect;
-            ClientObject2.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer2Tip = $"Сервер №2 {(ClientObject2.IsServerConnect ? "подключён" : "отключён")}.";
-            ClientObject2.Connect(true);
+            ClientObject2.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer2Tip = $"Сервер №{ClientObject2.Number} {(ClientObject2.IsServerConnect ? "подключён" : "отключён")}.";
+            //ClientObject2.Connect(true);
             LoadProjectEvent += LoadProject;
             CloseProjectEvent += CloseProject;
             ProcessWorksEvent += ProcessWorks;
@@ -53,16 +55,17 @@ namespace Saharok.ViewModel
             ClickOpenCreateProjectWindow = new Command(arg => OpenCreateProjectWindow(), arg => OpenCreateProjectWindow_CanExecute());
             ClickOpenReferenceWindow = new Command(arg => OpenCreateReferenceWindow(), arg => OpenReferenceWindow_CanExecute());
             ClickChooseFolderOpenFileDialog = new Command(arg => ChooseFolderOpenFileDialog());
-            ClickCreateProject = new Command(arg => CreateProject(PathProject, NameProject, CodeProject));
+            ClickCreateProject = new Command(arg => CreateProject(Path.Combine(PathDirectoryProject, NameProject), NameProject, CodeProject));
             ClickOpenProcessedPopup = new Command(arg => OpenProcessedPopup(), arg => OpenProcessedPopup_CanExecute());
-            ClickChangeApplicationVisibility = new Command(arg => System.Threading.Tasks.Task.Run(() => ChangeApplicationVisibility()), arg => ChangeApplicationVisibility_CanExecute());
-            ClickAbortProcess = new Command(arg => System.Threading.Tasks.Task.Run(() => AbortProcess()));
-            ClickFormProject = new Command(arg => System.Threading.Tasks.Task.Run(() => FormOnServerProject(arg)), arg => FormOnServerProject_CanExecute());
+            ClickChangeApplicationVisibility = new Command(arg => Task.Run(() => ChangeApplicationVisibility()), arg => ChangeApplicationVisibility_CanExecute());
+            ClickAbortProcess = new Command(arg => Task.Run(() => AbortProcess()));
+            ClickFormProject = new Command(arg => Task.Run(() => FormOnServerProject(arg)), arg => FormOnServerProject_CanExecute());
         }
 
         ClientObject ClientObject1;
         ClientObject ClientObject2;
-
+        FoldersConfigInfo FoldersConfigInfo { get; set; }
+        SectionNameTemplate SectionNameTemplate { get; set; }
 
         private Project myProject;
         public Project MyProject
@@ -86,14 +89,14 @@ namespace Saharok.ViewModel
             }
         }
 
-        private string pathProject;
-        public string PathProject
+        private string pathDirectoryProject;
+        public string PathDirectoryProject
         {
-            get => pathProject;
+            get => pathDirectoryProject;
             set
             {
-                pathProject = value;
-                OnPropertyChanged(nameof(PathProject));
+                pathDirectoryProject = value;
+                OnPropertyChanged(nameof(PathDirectoryProject));
             }
         }
 
@@ -262,16 +265,16 @@ namespace Saharok.ViewModel
             OnLoadProjectEvent();
         }
 
-        public void LoadProject(string fileName)
+        public void LoadProject(string filePath)
         {
-            if (!string.IsNullOrWhiteSpace(fileName))
+            if (!string.IsNullOrWhiteSpace(filePath))
             {
-                using (StreamReader stream = new StreamReader(fileName, Encoding.Default))
+                using (StreamReader stream = new StreamReader(filePath, Encoding.Default))
                 {
                     string name = stream.ReadLine();
                     string codeProject = stream.ReadLine();
                     Action<Action> Invoke = App.Current.Dispatcher.Invoke;
-                    MyProject = new Project(System.IO.Path.GetDirectoryName(fileName), name, codeProject, Invoke);
+                    MyProject = new Project(System.IO.Path.GetDirectoryName(filePath), name, codeProject, Invoke);
                     App.window.MyTabControl.Visibility = Visibility.Visible; // костыль для костыля в CloseProject()
                 }
             }
@@ -311,12 +314,18 @@ namespace Saharok.ViewModel
             createNewProjectWindow.ShowDialog();
         }
 
-        private void CreateProject(string pathProject, string nameProject, string codeProject)
+        private void CreateProject(string fullPath, string name, string codeProject)
         {
-
-            CreateProjectClass.CreateProjectPath(pathProject, nameProject, codeProject);
-            LoadProject(Path.Combine(pathProject, nameProject, nameProject + ".srk"));
-            createNewProjectWindow.Close();
+            try
+            {
+                CreateProjectClass.CreateProjectDirectory(fullPath, name, codeProject, FoldersConfigInfo);
+                LoadProject(Path.Combine(fullPath, name + ".srk"));
+                createNewProjectWindow.Close();
+            }
+            catch (Exception ex)
+            {
+                ErrorHandling(ex);
+            }
         }
 
         private bool OpenCreateProjectWindow_CanExecute()
@@ -335,7 +344,7 @@ namespace Saharok.ViewModel
 
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
             {
-                PathProject = dialog.FileName;
+                PathDirectoryProject = dialog.FileName;
             }
         }
 
@@ -361,17 +370,13 @@ namespace Saharok.ViewModel
 
                 if (objectToProject is Project)
                 {
-                    List<System.Threading.Tasks.Task> tasks = new List<System.Threading.Tasks.Task>();
-                    tasks.Add(System.Threading.Tasks.Task.Run(() =>
-                    {
-                        DirectoryMethods.ClearFolder(Path.Combine(MyProject.Path, "Готовый проект\\На сервер"));
-                        DirectoryMethods.ClearFolder(Path.Combine(MyProject.Path, "Готовый проект\\На отправку"));
-                    }));
-                    tasks.Add(System.Threading.Tasks.Task.Run(() => DirectoryMethods.ClearFolder(Path.Combine(MyProject.Path, "PDF постранично"))));
-
-                    System.Threading.Tasks.Task.WaitAll(tasks.ToArray());
+                    List<string> foldersForClear = new List<string>();
+                    foldersForClear.AddRange(MyProject.FoldersConfigInfo.OutputFilesPDFDirectories);
+                    foldersForClear.AddRange(MyProject.FoldersConfigInfo.OutputFilesZIPDirectories);
+                    foldersForClear.Add(MyProject.FoldersConfigInfo.OutputPageByPagePDF);
+                    foldersForClear.Distinct().ToList().ForEach(path => DirectoryMethods.ClearFolder(Path.Combine(MyProject.Path, path)));
                 }
-
+                
                 try
                 {
                     FormProject.CreateProject(objectToProject, ClientObject1);
@@ -449,6 +454,14 @@ namespace Saharok.ViewModel
             {
                 Thread.Sleep(500);
             }
+        }
+
+        public void CloseConnection()
+        {
+            ClientObject1.client.Close();
+            ClientObject2.client.Close();
+            ClientObject1.Disconnect();
+            ClientObject2.Disconnect();
         }
 
 
@@ -601,6 +614,29 @@ namespace Saharok.ViewModel
                     PropertyChanged -= OnOffTimerEvent;
                 }
             }
+        }
+
+        private void CheckConfigFile()
+        {
+            try
+            {
+                FoldersConfigInfo = new FoldersConfigInfo((ProjectFoldersConfigSection)ConfigurationManager.GetSection("ProjectFolders")); // для вызова возможных ошибок config файла  при открытии приложения
+                new SectionNameTemplate((SectionNameTemplateConfigSection)ConfigurationManager.GetSection("SectionNameTemplate")); // для вызова возможных ошибок config файла  при открытии приложения
+                int maxAppAutoCAD = 1;
+                if (Convert.ToInt32(ConfigurationManager.AppSettings["MaxCountAutoCAD"]) > maxAppAutoCAD)
+                {
+                    System.Windows.MessageBox.Show($"Максимальное количество приложений AutoCAD не более {maxAppAutoCAD}"
+                      + "\n\nРедактируйте App.config файл для корректной работы.", $"Ошибка в App.config файле");
+                    Environment.Exit(1);
+                }
+            }
+            catch( Exception ex)
+            {
+                System.Windows.MessageBox.Show(ex.Message
+                      + "\n\nРедактируйте App.config файл для корректной работы.", $"Ошибка в App.config файле");
+                Environment.Exit(1);
+            }
+           
         }
 
         private void ErrorHandling(Exception ex)

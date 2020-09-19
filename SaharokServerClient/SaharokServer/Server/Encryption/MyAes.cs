@@ -143,6 +143,8 @@ namespace SaharokServer.Encryption
             {
                 using (MemoryStream msDecrypt = new MemoryStream((byte[])Formatter.Deserialize(stream)))
                 {
+                    if (msDecrypt.Length == 0)
+                        throw new Exception("Пришёл пустой поток");
                     using (CryptoStream csDecrypt = new CryptoStream(msDecrypt, Decryptor, CryptoStreamMode.Read))
                     {
                         return Formatter.Deserialize(csDecrypt);

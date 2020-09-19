@@ -10,6 +10,7 @@ using System.ComponentModel;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
 using System.Reflection;
+using System.Configuration;
 
 namespace Saharok
 {
@@ -18,7 +19,10 @@ namespace Saharok
     {
         public string Title { get; set; }
         public string Path { get; set; }
-        public string PathEditableFiles { get; set; }
+        public string PathWorkingDirectory { get; set; }
+        public FoldersConfigInfo FoldersConfigInfo { get; set; }
+        public SectionNameTemplate SectionNameTemplate { get; set; }
+
         private string name;
         public string Name
         {
@@ -47,21 +51,50 @@ namespace Saharok
 
         public Project(string path, string nameProject, string codeProject, Action<Action> action)
         {
-
             if (!Directory.Exists(path))
             {
-                throw new ArgumentException("Path is not directory");
+                throw new ArgumentException("Неверный путь проекта");
             }
             Path = path;
-            PathEditableFiles = System.IO.Path.Combine(Path, "Редактируемые файлы");
+            FoldersConfigInfo = new FoldersConfigInfo((ProjectFoldersConfigSection)ConfigurationManager.GetSection("ProjectFolders"));
+            SectionNameTemplate = new SectionNameTemplate((SectionNameTemplateConfigSection)ConfigurationManager.GetSection("SectionNameTemplate"));
+            PathWorkingDirectory = System.IO.Path.Combine(Path, FoldersConfigInfo.WorkingDirectory);
             Name = nameProject;
             CodeProject = codeProject;
             Invoke = action;
-            TypeDocumentations = new ObservableCollection<TypeDocumentation>(Directory.EnumerateDirectories(PathEditableFiles, "*", SearchOption.TopDirectoryOnly)
+            
+
+            TypeDocumentations = new ObservableCollection<TypeDocumentation>(Directory.EnumerateDirectories(PathWorkingDirectory, "*", SearchOption.TopDirectoryOnly)
                 .Select(line => new TypeDocumentation(line, System.IO.Path.GetFileName(line), this)).ToList());
             watcher = new FileSystemWatcher();
 
-            watcher.Path = PathEditableFiles;
+            watcher.Path = PathWorkingDirectory;
+            watcher.NotifyFilter = NotifyFilters.LastAccess
+                                 | NotifyFilters.LastWrite
+                                 | NotifyFilters.FileName
+                                 | NotifyFilters.DirectoryName; ;
+            watcher.EnableRaisingEvents = true;
+            watcher.IncludeSubdirectories = true;
+
+            watcher.Created += new FileSystemEventHandler(OnCreate);
+            watcher.Deleted += new FileSystemEventHandler(OnDelete);
+            watcher.Renamed += new RenamedEventHandler(OnRename);
+        }
+
+        public Project(string path, Action<Action> action)
+        {
+            if (!Directory.Exists(path))
+            {
+                throw new ArgumentException("Неверный путь проекта");
+            }
+            Path = path;
+            PathWorkingDirectory = System.IO.Path.Combine(Path, FoldersConfigInfo.WorkingDirectory);
+            Invoke = action;
+            TypeDocumentations = new ObservableCollection<TypeDocumentation>(Directory.EnumerateDirectories(PathWorkingDirectory, "*", SearchOption.TopDirectoryOnly)
+                .Select(line => new TypeDocumentation(line, System.IO.Path.GetFileName(line), this)).ToList());
+            watcher = new FileSystemWatcher();
+
+            watcher.Path = PathWorkingDirectory;
             watcher.NotifyFilter = NotifyFilters.LastAccess
                                  | NotifyFilters.LastWrite
                                  | NotifyFilters.FileName
@@ -75,9 +108,10 @@ namespace Saharok
 
 
         }
+
         void OnDelete(object source, FileSystemEventArgs e)
         {
-            if (System.IO.Path.GetDirectoryName(e.FullPath) == PathEditableFiles)
+            if (System.IO.Path.GetDirectoryName(e.FullPath) == PathWorkingDirectory)
             {
                 string name = System.IO.Path.GetFileName(e.Name);
                 TypeDocumentation deleteElement = TypeDocumentations.Where(item => name == item.Name).FirstOrDefault();
@@ -94,12 +128,13 @@ namespace Saharok
 
         void OnCreate(object source, FileSystemEventArgs e)
         {
-            if (System.IO.Path.GetDirectoryName(e.FullPath) == PathEditableFiles)
+            if (System.IO.Path.GetDirectoryName(e.FullPath) == PathWorkingDirectory)
             {
                 if (Directory.Exists(e.FullPath))
                 {
                     string name = System.IO.Path.GetFileName(e.Name);
-                    Invoke(() => TypeDocumentations.Add(new TypeDocumentation(e.FullPath, name, this)));
+                    if (TypeDocumentations.Where(d => d.Name == name).Count() == 0)
+                        Invoke(() => TypeDocumentations.Add(new TypeDocumentation(e.FullPath, name, this)));
                 }
             }
             else
@@ -110,7 +145,7 @@ namespace Saharok
 
         void OnRename(object source, RenamedEventArgs e)
         {
-            if (System.IO.Path.GetDirectoryName(e.OldFullPath) == PathEditableFiles)
+            if (System.IO.Path.GetDirectoryName(e.OldFullPath) == PathWorkingDirectory)
             {
                 if (Directory.Exists(e.FullPath))
                 {
@@ -153,14 +188,14 @@ namespace Saharok
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         protected Project(SerializationInfo info, StreamingContext context)
         {
             info = FieldsSerializble.GetValue(this, info, new string[] { "watcher" });
         }
 
 
-        [SecurityPermissionAttribute(SecurityAction.Demand, SerializationFormatter = true)]
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
         {
             info = FieldsSerializble.AddValue(this, info, new string[] { "watcher" });
