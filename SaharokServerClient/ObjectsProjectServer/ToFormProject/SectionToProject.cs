@@ -54,25 +54,47 @@ namespace ObjectsProjectServer
             string templateNameSection = project.SectionNameTemplate.Template;
             char templateSeparator = project.SectionNameTemplate.Separator;
 
-            foldersConfigInfo.OutputFilesPDFDirectories.ForEach(directory => outputSectionsPaths.Add(
-                System.IO.Path.Combine(section.GetPathProject(), directory, typeDocumentation.Name,
-            GetSectionName(templateNameSection, project.Name, project.CodeProject, section.Name, templateSeparator, MethodFormFile.PDF)),
-            MethodFormFile.PDF));
 
-            foldersConfigInfo.OutputFilesZIPDirectories.ForEach(directory => outputSectionsPaths.Add(
-                System.IO.Path.Combine(section.GetPathProject(), directory, typeDocumentation.Name,
-            GetSectionName(templateNameSection, project.Name, project.CodeProject, section.Name, templateSeparator, MethodFormFile.ZIP)),
-            MethodFormFile.ZIP));
-
+            //List<FileToProject> sortedfilesToPDF = null;
             List<FileToProject> filesToPDF = new List<FileToProject>();
-            section.Files.ForEachImmediate(file =>
+            if (!project.IsVirtualProject)
             {
-                string outputFileName = System.IO.Path.ChangeExtension(
-                    System.IO.Path.Combine(section.GetPathProject(), foldersConfigInfo.OutputPageByPagePDF, typeDocumentation.Name, section.Name, file.Name), "pdf");
-                filesToPDF.Add(new FileToProject(file.Path, file.Name, outputFileName, file.MethodPDFFile));
-            });
-            List<FileToProject> sortedfilesToPDF = filesToPDF.OrderBy(item => item.OutputFileName).ToList();
-            return new SectionToProject(section.Path, outputSectionsPaths, sortedfilesToPDF);
+                foldersConfigInfo.OutputFilesPDFDirectories.ForEach(directory => outputSectionsPaths.Add(
+                    System.IO.Path.Combine(section.GetPathProject(), directory, typeDocumentation.Name,
+                        GetSectionName(templateNameSection, project.Name, project.CodeProject, section.Name, templateSeparator, MethodFormFile.PDF))
+                    , MethodFormFile.PDF));
+
+                foldersConfigInfo.OutputFilesZIPDirectories.ForEach(directory => outputSectionsPaths.Add(
+                    System.IO.Path.Combine(section.GetPathProject(), directory, typeDocumentation.Name,
+                        GetSectionName(templateNameSection, project.Name, project.CodeProject, section.Name, templateSeparator, MethodFormFile.ZIP))
+                    , MethodFormFile.ZIP));
+
+                
+                section.Files.ForEachImmediate(file =>
+                {
+                    string outputFileName = System.IO.Path.ChangeExtension(
+                        System.IO.Path.Combine(section.GetPathProject(), foldersConfigInfo.OutputPageByPagePDF, typeDocumentation.Name, section.Name, file.Name), "pdf");
+                    filesToPDF.Add(new FileToProject(file.Path, file.Name, outputFileName, file.MethodPDFFile));
+                });
+                //sortedfilesToPDF = filesToPDF.OrderBy(item => item.OutputFileName).ToList();
+            }
+            else
+            {
+                foldersConfigInfo.OutputFilesPDFDirectories.ForEach(directory => outputSectionsPaths.Add(
+                    System.IO.Path.Combine(directory, GetSectionName(templateNameSection, project.Name, project.CodeProject, 
+                        section.Name, templateSeparator, MethodFormFile.PDF))
+                    , MethodFormFile.PDF));
+
+                
+                section.Files.ForEachImmediate(file =>
+                {
+                    string outputFileName = System.IO.Path.ChangeExtension(
+                        System.IO.Path.Combine(foldersConfigInfo.OutputPageByPagePDF, typeDocumentation.Name, section.Name, file.Name), "pdf");
+                    filesToPDF.Add(new FileToProject(file.Path, file.Name, outputFileName, file.MethodPDFFile));
+                });
+                //sortedfilesToPDF = filesToPDF.OrderBy(item => item.OutputFileName).ToList();
+            }
+            return new SectionToProject(section.Path, outputSectionsPaths, filesToPDF);
         }
 
         const string nameNameProjectVariable = "|название проекта|";

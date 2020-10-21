@@ -21,10 +21,11 @@
     </Window.DataContext>
     <Window.Resources>
         <viewmodel:MainWindowViewModel x:Key="MainWindowViewModel"/>
-        <CollectionViewSource Source="{Binding Path=MyProject.TypeDocumentations}" x:Key="TypeDocumentations" IsLiveSortingRequested="True">
+        <CollectionViewSource Source="{Binding Path=MyProject.TypeDocumentations}" x:Key="TypeDocumentations">
+            <!--IsLiveSortingRequested="True"
             <CollectionViewSource.SortDescriptions>
                 <scm:SortDescription PropertyName="Name"/>
-            </CollectionViewSource.SortDescriptions>
+            </CollectionViewSource.SortDescriptions>-->
         </CollectionViewSource>
     </Window.Resources>
     <DockPanel>
@@ -144,10 +145,11 @@
                             <CollectionViewSource 
                                     Source="{Binding Sections}"
                                     x:Key="Sections"
-                                    IsLiveSortingRequested="True">
+                                    >
+                                <!--IsLiveSortingRequested="True"
                                 <CollectionViewSource.SortDescriptions>
                                     <scm:SortDescription PropertyName="Name"/>
-                                </CollectionViewSource.SortDescriptions>
+                                </CollectionViewSource.SortDescriptions>-->
                             </CollectionViewSource>
                         </ListBox.Resources>
                         <ListBox.ItemsSource>

@@ -11,6 +11,7 @@ using System.Runtime.Serialization;
 using System.Security.Permissions;
 using System.Reflection;
 using System.Configuration;
+using static Saharok.CustomMethods;
 
 namespace Saharok
 {
@@ -54,8 +55,12 @@ namespace Saharok
             if (System.IO.Path.GetDirectoryName(e.FullPath) == Path && File.Exists(e.FullPath) && FileFilter(e.FullPath))
             {
                 string name = System.IO.Path.GetFileName(e.Name);
-                if(Files.Where(f => f.Name == name).Count() == 0)
-                    TypeDocumentation.Project.Invoke(() => Files.Add(new FileSection(e.FullPath, name, this)));
+                if (Files.Where(f => f.Name == name).Count() == 0)
+                    TypeDocumentation.Project.Invoke(() =>
+                    {
+                        Files.Add(new FileSection(e.FullPath, name, this));
+                        Files.Sort((a, b) => { return new LogicalStringComparer().Compare(a.Name, b.Name); });
+                    });
             }
         }
 
@@ -93,21 +98,26 @@ namespace Saharok
         }
         public void OnRename(object source, RenamedEventArgs e)
         {
-            if (System.IO.Path.GetDirectoryName(e.OldFullPath) == Path 
-                && File.Exists(e.FullPath) 
-                && IsNotCreateAfterRename(source, e) 
+            if (System.IO.Path.GetDirectoryName(e.OldFullPath) == Path
+                && File.Exists(e.FullPath)
+                && IsNotCreateAfterRename(source, e)
                 && IsNotDeleteAfterRename(source, e))
             {
                 string oldName = System.IO.Path.GetFileName(e.OldName);
                 string newName = System.IO.Path.GetFileName(e.Name);
                 string newPath = e.FullPath;
                 FileSection renameElement = Files.Where(item => oldName == item.Name).FirstOrDefault();
+                if (renameElement == null)
+                    return;
+
                 TypeDocumentation.Project.Invoke(() =>
                 {
                     renameElement.Name = newName;
                     renameElement.Path = newPath;
                     renameElement.MethodPDFFile = TypeFile.ChooseMethodPDFFile(renameElement);
+                    Files.Sort((a, b) => { return new LogicalStringComparer().Compare(a.Name, b.Name); });
                 });
+
             }
         }
 
@@ -156,14 +166,14 @@ namespace Saharok
 
 
         [NonSerialized]
-        static List<string> ignoredExtensions = new List<string> (ConfigurationManager.AppSettings["IgnoredExtensions"].Replace(" ", String.Empty).Split(',')
+        static List<string> ignoredExtensions = new List<string>(ConfigurationManager.AppSettings["IgnoredExtensions"].Replace(" ", String.Empty).Split(',')
            /* ((IgnoredExtensionsConfigSection)ConfigurationManager.GetSection("IgnoredExtensions")).value.Replace(" ", String.Empty).Split(',')*/);
 
         private bool FileFilter(string fileName)
         {
             string extensionFile = System.IO.Path.GetExtension(fileName).ToLower();
             FileAttributes r = File.GetAttributes(fileName);
-            return ignoredExtensions.All(arg => !extensionFile.StartsWith('.' + arg)) 
+            return ignoredExtensions.All(arg => !extensionFile.StartsWith('.' + arg))
                 && (File.GetAttributes(fileName) & FileAttributes.Hidden) != FileAttributes.Hidden && !fileName.Contains("~$");
         }
 

@@ -8,7 +8,7 @@
         xmlns:app="clr-namespace:Saharok"
         mc:Ignorable="d"
         Title="Создать проект"
-        Height="500"
+        Height="400"
         Width="900"
         WindowStartupLocation="CenterScreen"
         Style="{StaticResource VS2012WindowStyleDialogWindow}"
@@ -31,7 +31,7 @@
         <Grid Grid.Column="1">
             <Grid.RowDefinitions>
                 <RowDefinition Height="245"/>
-                <RowDefinition Height="205"/>
+                <RowDefinition Height="105"/>
             </Grid.RowDefinitions>
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
@@ -104,6 +104,7 @@
                     Text="{Binding CodeProject, Mode=OneWayToSource}"
                     />
                 <TextBox
+                    x:Name ="PathDirectoryProjectTextBox"
                     Grid.Column="1"
                     Grid.Row="6"
                     Style="{StaticResource BlueBrushSearchTextBox}"
@@ -132,10 +133,12 @@
                 Grid.Row="1"
                 Style="{StaticResource StandardButton}"
                 VerticalAlignment="Bottom"
+                HorizontalAlignment="Right"
                 Content="Создать"
                 FontSize="16"
-                Height="30"
-                Width="100" Margin="425,0,75,45"
+                Height="30" 
+                Width="100"
+                Margin="75,25"
                 Command="{Binding ClickCreateProject}"
                 />
         </Grid>

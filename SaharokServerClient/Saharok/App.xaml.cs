@@ -16,6 +16,8 @@ using System.Xml;
 using System.Security.Permissions;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace Saharok
 {
@@ -41,7 +43,7 @@ namespace Saharok
                 MessageBox.Show("Запустите Saharok.exe от имени Администратора для настройки ассоциаций Windows.", "Ошибка доступа к реестру");
             }
 
-            var ex = false;
+            //var ex = false;
 
             window.Topmost = true;
             window.Show();
@@ -53,5 +55,8 @@ namespace Saharok
                 ((MainWindowViewModel)window.DataContext).CloseConnection();
             };
         }
+
+        [DllImport("user32.dll")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
     }
 }

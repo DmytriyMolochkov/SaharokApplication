@@ -145,6 +145,10 @@
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
+    <Page Include="View\ChooseSectionsWindow.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
     <Page Include="View\CreateReferenceWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -172,6 +176,7 @@
     <Compile Include="Model\ConnectKompas.cs" />
     <Compile Include="Model\CreateProjectClass.cs" />
     <Compile Include="Model\DirectoryMethods.cs" />
+    <Compile Include="Model\FileAssociation.cs" />
     <Compile Include="Model\FormProject.cs" />
     <Compile Include="ObjectsProjectClient\CustomMethods.cs" />
     <Compile Include="ObjectsProjectClient\FieldsSerializble.cs" />
@@ -198,6 +203,9 @@
     <Compile Include="Styles\CustomizedWindow\VS2012WindowStyle.cs" />
     <Compile Include="ViewModel\Command.cs" />
     <Compile Include="ViewModel\MainWindowViewModel.cs" />
+    <Compile Include="View\ChooseSectionsWindow.xaml.cs">
+      <DependentUpon>ChooseSectionsWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="View\CreateReferenceWindow.xaml.cs">
       <DependentUpon>CreateReferenceWindow.xaml</DependentUpon>
     </Compile>

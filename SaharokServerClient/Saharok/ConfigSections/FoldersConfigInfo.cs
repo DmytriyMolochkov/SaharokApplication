@@ -44,6 +44,11 @@ namespace Saharok
             }
         }
 
+        public FoldersConfigInfo()
+        {
+            
+        }
+
         public void GetInfo(FoldersCollection folders)
         {
             foreach (FolderElement folder in folders)
@@ -65,10 +70,10 @@ namespace Saharok
         private IEnumerable<string> CheckFolder(FolderElement folder)
         {
             List<string> errorMessages = new List<string>();
-            if (folder.WorkingDirectory && (folder.OutputFilesPDF || folder.OutputFilesZIP || folder.OutputPageByPagePDF))
-            {
-                errorMessages.Add("Нельзя папке одновременно присвоить WorkingDirectory и Output параметр.");
-            }
+            //if (folder.WorkingDirectory && (folder.OutputFilesPDF || folder.OutputFilesZIP || folder.OutputPageByPagePDF))
+            //{
+            //    errorMessages.Add("Нельзя папке одновременно присвоить WorkingDirectory и Output параметр.");
+            //}
             if (folder.WorkingDirectory && WorkingDirectory != null)
             {
                 errorMessages.Add("Нельзя нескольким папкам присвоить параметр WorkingDirectory.");

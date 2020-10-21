@@ -289,9 +289,23 @@ namespace Saharok.Model
                         });
                         if (acadDoc != null)
                         {
+                            string dllpath = "";
+                            AF_FileAssociator assoc = new AF_FileAssociator(".srk");
+                            if (File.Exists(Path.Combine(Path.GetDirectoryName(assoc.Executable.Path.Replace(@"""", "")), "acPlt.dll")))
+                            {
+                                dllpath = Path.Combine(Path.GetDirectoryName(assoc.Executable.Path.Replace(@"""", "")), "acPlt.dll");
+                            }
+                            else if (File.Exists(Path.Combine(Environment.CurrentDirectory, "acPlt.dll")))
+                            {
+                                dllpath = Path.Combine(Environment.CurrentDirectory, "acPlt.dll");
+                            }
+                            else
+                            {
+                                throw new Exception("Отсутсвует библиотека acPlt.dll.");
+                            }
                             TryExecute(() => acadDoc.SetVariable("FILEDIA", 0));
-                            TryExecute(() => acadDoc.SendCommand($"TRUSTEDPATHS {Environment.CurrentDirectory}\\ \n"));
-                            TryExecute(() => acadDoc.SendCommand($"_NETLOAD \"{Path.Combine(Environment.CurrentDirectory, "acPlt.dll")}\" \n"));
+                            acadDoc.SendCommand($"TRUSTEDPATHS {Path.GetDirectoryName(dllpath)}\\ \n");
+                            acadDoc.SendCommand($"_NETLOAD \"{dllpath}\" \n");
                             isLoadDLLAutoCad = true;
                             TryExecute(() => acadDoc.Close(false));
                             TryExecute(() => ShowWindow((int)autocad.HWND, 0));
@@ -969,11 +983,27 @@ namespace Saharok.Model
                 dynamic acadDoc = null;
                 acadDoc = autocad.ActiveDocument;
                 acadDoc.SetVariable("FILEDIA", 0);
+                
+
                 if (!isLoadDLLAutoCad)
                 {
-                    acadDoc.SendCommand($"TRUSTEDPATHS {Environment.CurrentDirectory}\\ \n");
+                    string dllpath = "";
+                    AF_FileAssociator assoc = new AF_FileAssociator(".srk");
+                    if (File.Exists(Path.Combine(Path.GetDirectoryName(assoc.Executable.Path.Replace(@"""", "")), "acPlt.dll")))
+                    {
+                        dllpath = Path.Combine(Path.GetDirectoryName(assoc.Executable.Path.Replace(@"""", "")), "acPlt.dll");
+                    }
+                    else if (File.Exists(Path.Combine(Environment.CurrentDirectory, "acPlt.dll")))
+                    {
+                        dllpath = Path.Combine(Environment.CurrentDirectory, "acPlt.dll");
+                    }
+                    else
+                    {
+                        throw new Exception("Отсутсвует библиотека acPlt.dll.");
+                    }
+                    acadDoc.SendCommand($"TRUSTEDPATHS {Path.GetDirectoryName(dllpath)}\\ \n");
                     ShowWindow((int)autocad.HWND, 0);
-                    acadDoc.SendCommand($"_NETLOAD \"{Path.Combine(Environment.CurrentDirectory, "acPlt.dll")}\" \n");
+                    acadDoc.SendCommand($"_NETLOAD \"{dllpath}\" \n");
                     ShowWindow((int)autocad.HWND, 0);
                     isLoadDLLAutoCad = true;
                 }
@@ -1047,7 +1077,7 @@ namespace Saharok.Model
 
                 }
                 layouts = layouts.OrderBy(obj => obj.Key).ToDictionary(obj => obj.Key, obj => obj.Value);
-                string guid = Guid.NewGuid().ToString();
+                string guid = Guid.NewGuid().ToString().Substring(30);
                 int i = 0;
                 List<string> tempFilePaths = new List<string>();
                 string tempFilePath;
@@ -1057,7 +1087,7 @@ namespace Saharok.Model
                     i++;
                     var obj = new object[] { layout };
                     plot.SetLayoutsToPlot(obj);
-                    tempFilePath = Path.Combine(directoryPDF, '!' + guid + i + ".pdf");
+                    tempFilePath = Path.Combine(directoryPDF, "!temp_" + guid + i + ".pdf");
                     tempFilePaths.Add(tempFilePath);
                     plot.PlotToFile(tempFilePath);
                 }

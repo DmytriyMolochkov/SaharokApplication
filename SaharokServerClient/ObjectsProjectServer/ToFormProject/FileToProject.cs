@@ -28,14 +28,24 @@ namespace ObjectsProjectServer
 
         public static List<FileToProject> GetFilesToProjectToPages(FileSection file)
         {
-            string nameDirFileToPDFToPages = "PDF постранично";
+            
             Section section = file.Section;
             TypeDocumentation typeDocumentation = section.TypeDocumentation;
             Project project = typeDocumentation.Project;
+            string nameDirFileToPDFToPages = project.FoldersConfigInfo.OutputPageByPagePDF;
             List<FileToProject> filesToPDF = new List<FileToProject>();
-            string outputFileName = System.IO.Path.ChangeExtension(
-                System.IO.Path.Combine(project.Path, nameDirFileToPDFToPages, typeDocumentation.Name, section.Name, file.Name), "pdf");
-            filesToPDF.Add(new FileToProject(file.Path, file.Name, outputFileName, file.MethodPDFFile));
+            if (!project.IsVirtualProject)
+            {
+                string outputFileName = System.IO.Path.ChangeExtension(
+                    System.IO.Path.Combine(project.Path, nameDirFileToPDFToPages, typeDocumentation.Name, section.Name, file.Name), "pdf");
+                filesToPDF.Add(new FileToProject(file.Path, file.Name, outputFileName, file.MethodPDFFile));
+            }
+            else
+            {
+                string outputFileName = System.IO.Path.ChangeExtension(
+                   System.IO.Path.Combine(project.FoldersConfigInfo.OutputFilesPDFDirectories.FirstOrDefault(), file.Name), "pdf");
+                filesToPDF.Add(new FileToProject(file.Path, file.Name, outputFileName, file.MethodPDFFile));
+            }
             return filesToPDF;
         }
 

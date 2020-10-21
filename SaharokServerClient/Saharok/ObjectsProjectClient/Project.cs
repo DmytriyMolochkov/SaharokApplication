@@ -11,6 +11,7 @@ using System.Runtime.Serialization;
 using System.Security.Permissions;
 using System.Reflection;
 using System.Configuration;
+using static Saharok.CustomMethods;
 
 namespace Saharok
 {
@@ -19,9 +20,10 @@ namespace Saharok
     {
         public string Title { get; set; }
         public string Path { get; set; }
-        public string PathWorkingDirectory { get; set; }
         public FoldersConfigInfo FoldersConfigInfo { get; set; }
         public SectionNameTemplate SectionNameTemplate { get; set; }
+        public bool IsVirtualProject { get; set; }
+        public List<string> watcherSectionsFilter; //ForVirtualProject
 
         private string name;
         public string Name
@@ -45,7 +47,7 @@ namespace Saharok
             }
         }
         public ObservableCollection<TypeDocumentation> TypeDocumentations { get; set; }
-        public FileSystemWatcher watcher;
+        public List<FileSystemWatcher> watchers = new List<FileSystemWatcher>();
         public Action<Action> Invoke;
 
 
@@ -53,65 +55,111 @@ namespace Saharok
         {
             if (!Directory.Exists(path))
             {
-                throw new ArgumentException("Неверный путь проекта");
+                throw new ArgumentException("Несуществующий путь проекта");
             }
+            IsVirtualProject = false;
             Path = path;
             FoldersConfigInfo = new FoldersConfigInfo((ProjectFoldersConfigSection)ConfigurationManager.GetSection("ProjectFolders"));
             SectionNameTemplate = new SectionNameTemplate((SectionNameTemplateConfigSection)ConfigurationManager.GetSection("SectionNameTemplate"));
-            PathWorkingDirectory = System.IO.Path.Combine(Path, FoldersConfigInfo.WorkingDirectory);
+            
             Name = nameProject;
             CodeProject = codeProject;
             Invoke = action;
-            
 
-            TypeDocumentations = new ObservableCollection<TypeDocumentation>(Directory.EnumerateDirectories(PathWorkingDirectory, "*", SearchOption.TopDirectoryOnly)
+            string pathWorkingDirectory = System.IO.Path.Combine(Path, FoldersConfigInfo.WorkingDirectory);
+            TypeDocumentations = new ObservableCollection<TypeDocumentation>(Directory.EnumerateDirectories(pathWorkingDirectory, "*", SearchOption.TopDirectoryOnly)
                 .Select(line => new TypeDocumentation(line, System.IO.Path.GetFileName(line), this)).ToList());
-            watcher = new FileSystemWatcher();
+            watchers.Add(new FileSystemWatcher());
 
-            watcher.Path = PathWorkingDirectory;
-            watcher.NotifyFilter = NotifyFilters.LastAccess
+            watchers[0].Path = pathWorkingDirectory;
+            watchers[0].NotifyFilter = NotifyFilters.LastAccess
                                  | NotifyFilters.LastWrite
                                  | NotifyFilters.FileName
                                  | NotifyFilters.DirectoryName; ;
-            watcher.EnableRaisingEvents = true;
-            watcher.IncludeSubdirectories = true;
+            watchers[0].EnableRaisingEvents = true;
+            watchers[0].IncludeSubdirectories = true;
 
-            watcher.Created += new FileSystemEventHandler(OnCreate);
-            watcher.Deleted += new FileSystemEventHandler(OnDelete);
-            watcher.Renamed += new RenamedEventHandler(OnRename);
+            watchers[0].Created += new FileSystemEventHandler(OnCreate);
+            watchers[0].Deleted += new FileSystemEventHandler(OnDelete);
+            watchers[0].Renamed += new RenamedEventHandler(OnRename);
         }
 
-        public Project(string path, Action<Action> action)
+        public Project(IEnumerable<string> sectionsPaths, string formProjectPath, Action<Action> action)
         {
-            if (!Directory.Exists(path))
-            {
-                throw new ArgumentException("Неверный путь проекта");
-            }
-            Path = path;
-            PathWorkingDirectory = System.IO.Path.Combine(Path, FoldersConfigInfo.WorkingDirectory);
+            var errorMesseges = new List<string>();
+            var errorSections = new List<string>();
+            var sameNameSections = new List<string>();
+
+            sectionsPaths
+                .Where(section => !Directory.Exists(section))
+                .ToList()
+                .ForEach(section =>
+                {
+                    errorSections.Add(section);
+                });
+            if (errorSections.Count > 0)
+                errorMesseges.Add($"Несуществующие пути разделов документации:{Environment.NewLine}"
+                    + String.Join($"{Environment.NewLine}", errorSections));
+            
+            sectionsPaths
+                .Where(section => Directory.Exists(section))
+                .ToList()
+                .GroupBy(section => System.IO.Path.GetFileName(section))
+                .Where(group => group.ToList().Count > 1)
+                .SelectMany(group => group).ToList()
+                .ForEach(section =>
+                {
+                    sameNameSections.Add(section);
+                });
+            if (sameNameSections.Count > 0)
+                errorMesseges.Add($"Одинаковые имена PDF-альбомов будут у следующих разделов:{Environment.NewLine}"
+                    + String.Join($"{Environment.NewLine}", sameNameSections));
+
+            if(!Directory.Exists(formProjectPath))
+                errorMesseges.Add($"Несуществующий путь для PDF-альбомов:{Environment.NewLine}{formProjectPath}");
+
+            if (errorMesseges.Count > 0)
+                throw new Exception(String.Join($"{Environment.NewLine}{Environment.NewLine}", errorMesseges));
+
+            IsVirtualProject = true;
+            List<string> typeDocumentationPaths = sectionsPaths.Select(s => System.IO.Path.GetDirectoryName(s)).Distinct().ToList();
+            watcherSectionsFilter = sectionsPaths.ToList();
+
+            FoldersConfigInfo = new FoldersConfigInfo();
+            FoldersConfigInfo.OutputFilesPDFDirectories.Add(formProjectPath);
+            FoldersConfigInfo.OutputPageByPagePDF = System.IO.Path.Combine(formProjectPath, "!temp_" + Guid.NewGuid().ToString().Substring(30));
+
+            var sectionNameTemplateConfigSection = new SectionNameTemplateConfigSection();
+            sectionNameTemplateConfigSection.Template = "|раздел документации|";
+            sectionNameTemplateConfigSection.Separator = ' ';
+            SectionNameTemplate = new SectionNameTemplate(sectionNameTemplateConfigSection);
+
             Invoke = action;
-            TypeDocumentations = new ObservableCollection<TypeDocumentation>(Directory.EnumerateDirectories(PathWorkingDirectory, "*", SearchOption.TopDirectoryOnly)
-                .Select(line => new TypeDocumentation(line, System.IO.Path.GetFileName(line), this)).ToList());
-            watcher = new FileSystemWatcher();
+            TypeDocumentations = new ObservableCollection<TypeDocumentation>(
+                typeDocumentationPaths.Select(d => new TypeDocumentation(d, System.IO.Path.GetFileName(d), this, sectionsPaths)));
 
-            watcher.Path = PathWorkingDirectory;
-            watcher.NotifyFilter = NotifyFilters.LastAccess
-                                 | NotifyFilters.LastWrite
-                                 | NotifyFilters.FileName
-                                 | NotifyFilters.DirectoryName; ;
-            watcher.EnableRaisingEvents = true;
-            watcher.IncludeSubdirectories = true;
-
-            watcher.Created += new FileSystemEventHandler(OnCreate);
-            watcher.Deleted += new FileSystemEventHandler(OnDelete);
-            watcher.Renamed += new RenamedEventHandler(OnRename);
-
-
+            typeDocumentationPaths.ForEach(d =>
+            {
+                var watcher = new FileSystemWatcher();
+                watchers.Add(new FileSystemWatcher());
+                watcher.Path = System.IO.Path.GetDirectoryName(d);
+                watcher.NotifyFilter = NotifyFilters.LastAccess
+                                         | NotifyFilters.LastWrite
+                                         | NotifyFilters.FileName
+                                         | NotifyFilters.DirectoryName;
+                watcher.EnableRaisingEvents = true;
+                watcher.IncludeSubdirectories = true;
+                
+                watcher.Created += new FileSystemEventHandler(OnCreate);
+                watcher.Deleted += new FileSystemEventHandler(OnDelete);
+                watcher.Renamed += new RenamedEventHandler(OnRename);
+                watchers.Add(watcher);
+            });
         }
 
         void OnDelete(object source, FileSystemEventArgs e)
         {
-            if (System.IO.Path.GetDirectoryName(e.FullPath) == PathWorkingDirectory)
+            if (System.IO.Path.GetDirectoryName(e.FullPath) == ((FileSystemWatcher)source).Path)
             {
                 string name = System.IO.Path.GetFileName(e.Name);
                 TypeDocumentation deleteElement = TypeDocumentations.Where(item => name == item.Name).FirstOrDefault();
@@ -128,13 +176,19 @@ namespace Saharok
 
         void OnCreate(object source, FileSystemEventArgs e)
         {
-            if (System.IO.Path.GetDirectoryName(e.FullPath) == PathWorkingDirectory)
+            if (System.IO.Path.GetDirectoryName(e.FullPath) == ((FileSystemWatcher)source).Path)
             {
+                if (IsVirtualProject)
+                    return;
                 if (Directory.Exists(e.FullPath))
                 {
                     string name = System.IO.Path.GetFileName(e.Name);
                     if (TypeDocumentations.Where(d => d.Name == name).Count() == 0)
-                        Invoke(() => TypeDocumentations.Add(new TypeDocumentation(e.FullPath, name, this)));
+                        Invoke(() =>
+                        {
+                            TypeDocumentations.Add(new TypeDocumentation(e.FullPath, name, this));
+                            TypeDocumentations.Sort((a, b) => { return new LogicalStringComparer().Compare(a.Name, b.Name); });
+                        });
                 }
             }
             else
@@ -145,7 +199,7 @@ namespace Saharok
 
         void OnRename(object source, RenamedEventArgs e)
         {
-            if (System.IO.Path.GetDirectoryName(e.OldFullPath) == PathWorkingDirectory)
+            if (System.IO.Path.GetDirectoryName(e.OldFullPath) == ((FileSystemWatcher)source).Path)
             {
                 if (Directory.Exists(e.FullPath))
                 {
@@ -153,13 +207,22 @@ namespace Saharok
                     string newName = System.IO.Path.GetFileName(e.Name);
                     string newPath = e.FullPath;
                     TypeDocumentation renameElement = TypeDocumentations.Where(item => oldName == item.Name).FirstOrDefault();
+                    if (renameElement == null)
+                        return;
+
                     string oldPath = renameElement.Path;
                     Invoke(() =>
                     {
                         renameElement.Name = newName;
                         renameElement.Path = newPath;
                         renameElement.Sections.ForEachImmediate(line => line.RenamePath(line, oldPath, newPath));
+                        TypeDocumentations.Sort((a, b) => { return new LogicalStringComparer().Compare(a.Name, b.Name); });
                     });
+
+                    if (IsVirtualProject)
+                    {
+                        watcherSectionsFilter.ForEach(s => s = s.Replace(oldPath, newPath));
+                    }
                 }
             }
             else
@@ -169,7 +232,7 @@ namespace Saharok
         }
         public void Dispose()
         {
-            watcher?.Dispose();
+            watchers.ForEach(w => w?.Dispose());
         }
 
         ~Project()
@@ -191,14 +254,14 @@ namespace Saharok
         [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         protected Project(SerializationInfo info, StreamingContext context)
         {
-            info = FieldsSerializble.GetValue(this, info, new string[] { "watcher" });
+            info = FieldsSerializble.GetValue(this, info, new string[] { "watchers", "watcherSectionsFilter" });
         }
 
 
         [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
         {
-            info = FieldsSerializble.AddValue(this, info, new string[] { "watcher" });
+            info = FieldsSerializble.AddValue(this, info, new string[] { "watchers", "watcherSectionsFilter" });
         }
     }
 }

@@ -10,6 +10,7 @@ using System.ComponentModel;
 using System.Runtime.Serialization;
 using System.Security.Permissions;
 using System.Reflection;
+using static Saharok.CustomMethods;
 
 namespace Saharok
 {
@@ -39,6 +40,16 @@ namespace Saharok
             LoadSectionsWithRetries();
         }
 
+        public TypeDocumentation(string path, string name, Project parent, IEnumerable<string> sectionsPaths)
+        {
+            Path = path;
+            Name = name;
+            Project = parent;
+            Sections = new ObservableCollection<Section>(
+                sectionsPaths.Where(s => System.IO.Path.GetDirectoryName(s) == Path)
+                             .Select(line => new Section(line, System.IO.Path.GetFileName(line), this)));
+        }
+
         public Section GetSection(string path)
         {
             return Sections.Where(s => path.StartsWith(s.Path)).FirstOrDefault();
@@ -65,11 +76,17 @@ namespace Saharok
         {
             if (System.IO.Path.GetDirectoryName(e.FullPath) == Path)
             {
+                if (Project.IsVirtualProject)
+                    return;
                 if (Directory.Exists(e.FullPath))
                 {
                     string name = System.IO.Path.GetFileName(e.Name);
                     if (Sections.Where(s => s.Name == name).Count() == 0)
-                        Project.Invoke(() => Sections.Add(new Section(e.FullPath, name, this)));
+                        Project.Invoke(() =>
+                        {
+                            Sections.Add(new Section(e.FullPath, name, this));
+                            Sections.Sort((a, b) => { return new LogicalStringComparer().Compare(a.Name, b.Name); });
+                        });
                 }
             }
             else
@@ -88,13 +105,24 @@ namespace Saharok
                     string newName = System.IO.Path.GetFileName(e.Name);
                     string newPath = e.FullPath;
                     Section renameElement = Sections.Where(item => oldName == item.Name).FirstOrDefault();
+                    if (renameElement == null)
+                        return;
+
                     string oldPath = renameElement.Path;
                     Project.Invoke(() =>
                     {
                         renameElement.Name = newName;
                         renameElement.Path = newPath;
                         renameElement.Files.ForEachImmediate(line => line.RenamePath(line, oldPath, newPath));
+                        Sections.Sort((a, b) => { return new LogicalStringComparer().Compare(a.Name, b.Name); });
                     });
+
+                    if (Project.IsVirtualProject)
+                    {
+                        int index = Project.watcherSectionsFilter.IndexOf(oldPath);
+                        if (index != -1)
+                            Project.watcherSectionsFilter[index] = Project.watcherSectionsFilter[index].Replace(oldPath, newPath);
+                    }
                 }
             }
             else

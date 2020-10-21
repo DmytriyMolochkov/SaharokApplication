@@ -35,14 +35,14 @@ namespace Saharok.ViewModel
             IsProcessed = false;
             ApplicationVisibility = Model.FormProject.ApplicationVisibility;
             PathDirectoryProject = "";
-            ClientObject1 = new ClientObject("127.0.0.1", 9111, 1); /*109.68.215.3*/ /*127.0.0.1*/
+            ClientObject1 = new ClientObject("109.68.215.3", 8901, 1); /*109.68.215.3*/ /*127.0.0.1*/
             ClientObject1.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer1Connect = ClientObject1.IsServerConnect;
             ClientObject1.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer1Tip = $"Сервер №{ClientObject1.Number} {(ClientObject1.IsServerConnect ? "подключён" : "отключён")}.";
             ClientObject1.Connect(true);
-            ClientObject2 = new ClientObject("127.0.0.1", 9112, 2); /*5.23.54.220*/
+            ClientObject2 = new ClientObject("5.23.54.220", 8902, 2); /*5.23.54.220*/
             ClientObject2.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer2Connect = ClientObject2.IsServerConnect;
             ClientObject2.PropertyChanged += (object sender, PropertyChangedEventArgs e) => IsServer2Tip = $"Сервер №{ClientObject2.Number} {(ClientObject2.IsServerConnect ? "подключён" : "отключён")}.";
-            //ClientObject2.Connect(true);
+            ClientObject2.Connect(true);
             LoadProjectEvent += LoadProject;
             CloseProjectEvent += CloseProject;
             ProcessWorksEvent += ProcessWorks;
@@ -53,13 +53,24 @@ namespace Saharok.ViewModel
             ClickLoadProject = new Command(arg => LoadProject(), arg => LoadProject_CanExecute());
             ClickCloseProject = new Command(arg => CloseProject(), arg => CloseProject_CanExecute());
             ClickOpenCreateProjectWindow = new Command(arg => OpenCreateProjectWindow(), arg => OpenCreateProjectWindow_CanExecute());
+            ClickChooseSectionsWindow = new Command(arg => OpenChooseSectionsWindow(), arg => OpenCreateProjectWindow_CanExecute());
             ClickOpenReferenceWindow = new Command(arg => OpenCreateReferenceWindow(), arg => OpenReferenceWindow_CanExecute());
             ClickChooseFolderOpenFileDialog = new Command(arg => ChooseFolderOpenFileDialog());
-            ClickCreateProject = new Command(arg => CreateProject(Path.Combine(PathDirectoryProject, NameProject), NameProject, CodeProject));
+            ClickCreateProject = new Command(arg => CreateProject());
+            ClickCreateVirtualProject = new Command(arg => CreateVirtualProject());
+            ClickChooseSectionsPath = new Command(arg => ChooseSectionsPath());
+            ClickChooseFolderFormPathProject = new Command(arg => ChooseFolderFormPathProject());
             ClickOpenProcessedPopup = new Command(arg => OpenProcessedPopup(), arg => OpenProcessedPopup_CanExecute());
             ClickChangeApplicationVisibility = new Command(arg => Task.Run(() => ChangeApplicationVisibility()), arg => ChangeApplicationVisibility_CanExecute());
             ClickAbortProcess = new Command(arg => Task.Run(() => AbortProcess()));
             ClickFormProject = new Command(arg => Task.Run(() => FormOnServerProject(arg)), arg => FormOnServerProject_CanExecute());
+            ClickQuickFormVirtualProject = new Command(arg =>
+            {
+                CreateVirtualProject();
+
+                if (FormOnServerProject_CanExecute())
+                    Task.Run(() => FormOnServerProject(MyProject));
+            });
         }
 
         ClientObject ClientObject1;
@@ -108,6 +119,36 @@ namespace Saharok.ViewModel
             {
                 codeProject = value;
                 OnPropertyChanged(nameof(CodeProject));
+            }
+        }
+
+        private string sectionsPathsNonParsing;
+        public string SectionsPathsNonParsing
+        {
+            get => sectionsPathsNonParsing;
+            set
+            {
+                sectionsPathsNonParsing = value;
+                OnPropertyChanged(nameof(SectionsPathsNonParsing));
+                IEnumerable<string> sectionsPaths = ParsingSectionsPaths(SectionsPathsNonParsing);
+                if (String.IsNullOrWhiteSpace(FormPathProject) && sectionsPaths.Count() > 0 && Directory.Exists(sectionsPaths.First()))
+                {
+                    var textBox = chooseSectionsWindow.PathFormProjectTextBox;
+                    FormPathProject = System.IO.Path.GetDirectoryName(sectionsPaths.First());
+                    var rect = textBox.GetRectFromCharacterIndex(FormPathProject.Length);
+                    textBox.ScrollToHorizontalOffset(rect.Right);
+                }
+            }
+        }
+
+        private string formPathProject;
+        public string FormPathProject
+        {
+            get => formPathProject;
+            set
+            {
+                formPathProject = value;
+                OnPropertyChanged(nameof(FormPathProject));
             }
         }
 
@@ -231,9 +272,13 @@ namespace Saharok.ViewModel
         public ICommand ClickLoadProject { get; set; }
         public ICommand ClickCloseProject { get; set; }
         public ICommand ClickOpenCreateProjectWindow { get; set; }
+        public ICommand ClickChooseSectionsWindow { get; set; }
         public ICommand ClickOpenReferenceWindow { get; set; }
         public ICommand ClickChooseFolderOpenFileDialog { get; set; }
         public ICommand ClickCreateProject { get; set; }
+        public ICommand ClickCreateVirtualProject { get; set; }
+        public ICommand ClickChooseSectionsPath { get; set; }
+        public ICommand ClickChooseFolderFormPathProject { get; set; }
         public ICommand ClickFormProject { get; set; }
         public ICommand ClickCombinePDF { get; set; }
         public ICommand ClickFormOnServerTypeDocumentation { get; set; }
@@ -242,41 +287,41 @@ namespace Saharok.ViewModel
         public ICommand ClickOpenProcessedPopup { get; set; }
         public ICommand ClickChangeApplicationVisibility { get; set; }
         public ICommand ClickAbortProcess { get; set; }
+        public ICommand ClickQuickFormVirtualProject { get; set; }
 
         public void LoadProject()
         {
             OpenFileDialog dialog = new OpenFileDialog();
             dialog.Filter = "Text documents (*.srk)|*.srk|All files (*.*)|*.*";
             dialog.FilterIndex = 1;
-            dialog.ShowDialog();
+            if (dialog.ShowDialog() == DialogResult.Cancel)
+                return;
 
-            if (!string.IsNullOrWhiteSpace(dialog.FileName))
+            string fileName = dialog.FileName;
+            using (StreamReader stream = new StreamReader(fileName, Encoding.Default))
             {
-                string fileName = dialog.FileName;
-                using (StreamReader stream = new StreamReader(fileName, Encoding.Default))
-                {
-                    string name = stream.ReadLine();
-                    string codeProject = stream.ReadLine();
-                    Action<Action> Invoke = App.Current.Dispatcher.Invoke;
-                    MyProject = new Project(System.IO.Path.GetDirectoryName(fileName), name, codeProject, Invoke);
-                    App.window.MyTabControl.Visibility = Visibility.Visible;
-                }
+                string name = stream.ReadLine();
+                string codeProject = stream.ReadLine();
+                Action<Action> Invoke = App.Current.Dispatcher.Invoke;
+                MyProject = new Project(System.IO.Path.GetDirectoryName(fileName), name, codeProject, Invoke);
+                App.window.MyTabControl.Visibility = Visibility.Visible;
             }
+
             OnLoadProjectEvent();
         }
 
         public void LoadProject(string filePath)
         {
-            if (!string.IsNullOrWhiteSpace(filePath))
+            if (string.IsNullOrWhiteSpace(filePath))
+                return;
+
+            using (StreamReader stream = new StreamReader(filePath, Encoding.Default))
             {
-                using (StreamReader stream = new StreamReader(filePath, Encoding.Default))
-                {
-                    string name = stream.ReadLine();
-                    string codeProject = stream.ReadLine();
-                    Action<Action> Invoke = App.Current.Dispatcher.Invoke;
-                    MyProject = new Project(System.IO.Path.GetDirectoryName(filePath), name, codeProject, Invoke);
-                    App.window.MyTabControl.Visibility = Visibility.Visible; // костыль для костыля в CloseProject()
-                }
+                string name = stream.ReadLine();
+                string codeProject = stream.ReadLine();
+                Action<Action> Invoke = App.Current.Dispatcher.Invoke;
+                MyProject = new Project(System.IO.Path.GetDirectoryName(filePath), name, codeProject, Invoke);
+                App.window.MyTabControl.Visibility = Visibility.Visible; // костыль для костыля в CloseProject()
             }
             OnLoadProjectEvent();
         }
@@ -308,24 +353,69 @@ namespace Saharok.ViewModel
         CreateNewProjectWindow createNewProjectWindow { get; set; }
         private void OpenCreateProjectWindow()
         {
+            PathDirectoryProject = String.Empty;
             createNewProjectWindow = new CreateNewProjectWindow();
             createNewProjectWindow.Owner = App.window;
             createNewProjectWindow.DataContext = ((MainWindowViewModel)App.window.DataContext);
             createNewProjectWindow.ShowDialog();
         }
 
-        private void CreateProject(string fullPath, string name, string codeProject)
+        ChooseSectionsWindow chooseSectionsWindow { get; set; }
+        private void OpenChooseSectionsWindow()
+        {
+            SectionsPathsNonParsing = String.Empty;
+            FormPathProject = String.Empty;
+            chooseSectionsWindow = new ChooseSectionsWindow();
+            chooseSectionsWindow.Owner = App.window;
+            chooseSectionsWindow.DataContext = ((MainWindowViewModel)App.window.DataContext);
+            chooseSectionsWindow.ShowDialog();
+        }
+
+        private void CreateProject()
         {
             try
             {
-                CreateProjectClass.CreateProjectDirectory(fullPath, name, codeProject, FoldersConfigInfo);
-                LoadProject(Path.Combine(fullPath, name + ".srk"));
+                string fullPath = Path.Combine(PathDirectoryProject, NameProject);
+                CreateProjectClass.CreateProjectDirectory(fullPath, NameProject, CodeProject, FoldersConfigInfo);
+                LoadProject(Path.Combine(fullPath, NameProject + ".srk"));
                 createNewProjectWindow.Close();
             }
             catch (Exception ex)
             {
                 ErrorHandling(ex);
             }
+        }
+
+        private void CreateVirtualProject()
+        {
+            try
+            {
+                IEnumerable<string> sectionsPaths = ParsingSectionsPaths(SectionsPathsNonParsing);
+                if (sectionsPaths.Count() == 0)
+                    throw new Exception("Выберете разделы документации");
+                if (String.IsNullOrWhiteSpace(FormPathProject))
+                    throw new Exception("Укажите путь готовых PDF-альбомов");
+                Action<Action> Invoke = App.Current.Dispatcher.Invoke;
+                MyProject = new Project(sectionsPaths, FormPathProject, Invoke);
+                chooseSectionsWindow.Close();
+                OnLoadProjectEvent();
+                SectionsPathsNonParsing = String.Empty;
+                FormPathProject = String.Empty;
+                App.window.MyTabControl.Visibility = Visibility.Visible; // костыль для костыля в CloseProject()
+            }
+            catch (Exception ex)
+            {
+                ErrorHandling(ex);
+            }
+        }
+
+        private IEnumerable<string> ParsingSectionsPaths(string sectionsPathsNonParsing)
+        {
+            if (SectionsPathsNonParsing == null)
+                return new string[] { };
+
+            return sectionsPathsNonParsing.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Where(s => !String.IsNullOrWhiteSpace(s)).Select(s => s.Trim(' '));
         }
 
         private bool OpenCreateProjectWindow_CanExecute()
@@ -335,16 +425,45 @@ namespace Saharok.ViewModel
             else
                 return true;
         }
+        private void ChooseSectionsPath()
+        {
+            var dialog = new CommonOpenFileDialog();
+            dialog.IsFolderPicker = true;
+            dialog.Multiselect = true;
+
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            {
+                SectionsPathsNonParsing = String.Join($"{Environment.NewLine}", dialog.FileNames) + Environment.NewLine;
+            }
+        }
+
+        private void ChooseFolderFormPathProject()
+        {
+            var dialog = new CommonOpenFileDialog();
+            dialog.IsFolderPicker = true;
+
+            if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+            {
+                FormPathProject = dialog.FileName;
+
+                var textBox = chooseSectionsWindow.PathFormProjectTextBox;
+                var rect = textBox.GetRectFromCharacterIndex(FormPathProject.Length);
+                textBox.ScrollToHorizontalOffset(rect.Right);
+            }
+        }
 
         private void ChooseFolderOpenFileDialog()
         {
             var dialog = new CommonOpenFileDialog();
             dialog.IsFolderPicker = true;
 
-
             if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
             {
                 PathDirectoryProject = dialog.FileName;
+
+                var textBox = createNewProjectWindow.PathDirectoryProjectTextBox;
+                var rect = textBox.GetRectFromCharacterIndex(PathDirectoryProject.Length);
+                textBox.ScrollToHorizontalOffset(rect.Right);
             }
         }
 
@@ -368,7 +487,7 @@ namespace Saharok.ViewModel
             {
                 OnProcessWorksEvent();
 
-                if (objectToProject is Project)
+                if (objectToProject is Project && !((Project)objectToProject).IsVirtualProject)
                 {
                     List<string> foldersForClear = new List<string>();
                     foldersForClear.AddRange(MyProject.FoldersConfigInfo.OutputFilesPDFDirectories);
@@ -376,7 +495,7 @@ namespace Saharok.ViewModel
                     foldersForClear.Add(MyProject.FoldersConfigInfo.OutputPageByPagePDF);
                     foldersForClear.Distinct().ToList().ForEach(path => DirectoryMethods.ClearFolder(Path.Combine(MyProject.Path, path)));
                 }
-                
+
                 try
                 {
                     FormProject.CreateProject(objectToProject, ClientObject1);
@@ -391,6 +510,15 @@ namespace Saharok.ViewModel
                     {
                         throw new AggregateException(new Exception[] { ex, e });
                     }
+                }
+
+                if (MyProject.IsVirtualProject)
+                {
+                    try
+                    {
+                        Directory.Delete(MyProject.FoldersConfigInfo.OutputPageByPagePDF, true);
+                    }
+                    catch (Exception) { }
                 }
 
                 OnProcessOffEvent();
@@ -630,13 +758,13 @@ namespace Saharok.ViewModel
                     Environment.Exit(1);
                 }
             }
-            catch( Exception ex)
+            catch (Exception ex)
             {
                 System.Windows.MessageBox.Show(ex.Message
                       + "\n\nРедактируйте App.config файл для корректной работы.", $"Ошибка в App.config файле");
                 Environment.Exit(1);
             }
-           
+
         }
 
         private void ErrorHandling(Exception ex)

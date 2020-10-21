@@ -49,6 +49,7 @@ namespace ObjectsProjectServer
         {
             InfoOfProcess infoOfProcess = InfoOfProcess.GetInstance();
             infoOfProcess.TotalFormsFiles = filesToPDF.Where(file => file.MethodPDFFile != MethodPDFFile.DontPDF).Count();
+            infoOfProcess.TotalFormsSections = 0;
 
             SortByApllications(filesToPDF);
 
