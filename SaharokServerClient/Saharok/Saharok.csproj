@@ -178,17 +178,17 @@
     <Compile Include="Model\DirectoryMethods.cs" />
     <Compile Include="Model\FileAssociation.cs" />
     <Compile Include="Model\FormProject.cs" />
-    <Compile Include="ObjectsProjectClient\CustomMethods.cs" />
-    <Compile Include="ObjectsProjectClient\FieldsSerializble.cs" />
-    <Compile Include="ObjectsProjectClient\FileSection.cs" />
-    <Compile Include="ObjectsProjectClient\Project.cs" />
-    <Compile Include="ObjectsProjectClient\Section.cs" />
-    <Compile Include="ObjectsProjectClient\ToFormProject\FilesToPDFSort.cs" />
-    <Compile Include="ObjectsProjectClient\ToFormProject\FileToProject.cs" />
-    <Compile Include="ObjectsProjectClient\ToFormProject\InfoOfProcess.cs" />
-    <Compile Include="ObjectsProjectClient\ToFormProject\SectionToProject.cs" />
-    <Compile Include="ObjectsProjectClient\TypeDocumentation.cs" />
-    <Compile Include="ObjectsProjectClient\TypeFile.cs" />
+    <Compile Include="Model\ObjectsProjectClient\CustomMethods.cs" />
+    <Compile Include="Model\ObjectsProjectClient\FieldsSerializble.cs" />
+    <Compile Include="Model\ObjectsProjectClient\FileSection.cs" />
+    <Compile Include="Model\ObjectsProjectClient\Project.cs" />
+    <Compile Include="Model\ObjectsProjectClient\Section.cs" />
+    <Compile Include="Model\ObjectsProjectClient\ToFormProject\FilesToPDFSort.cs" />
+    <Compile Include="Model\ObjectsProjectClient\ToFormProject\FileToProject.cs" />
+    <Compile Include="Model\ObjectsProjectClient\ToFormProject\InfoOfProcess.cs" />
+    <Compile Include="Model\ObjectsProjectClient\ToFormProject\SectionToProject.cs" />
+    <Compile Include="Model\ObjectsProjectClient\TypeDocumentation.cs" />
+    <Compile Include="Model\ObjectsProjectClient\TypeFile.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
