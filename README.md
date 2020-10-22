@@ -17,6 +17,6 @@
 Один сервер может прослушивать одновременно несколько независимых групп пользователей. 
 Чтобы добавить новую группу, необходимо редактировать config-файл сервера.
 
-Скачать приложение: https://drive.google.com/u/0/uc?id=1OM6y-G3xA1i3AvQ7-qZMYzlT5kjo1gf6&export=download /n
+Скачать приложение: https://drive.google.com/u/0/uc?id=1OM6y-G3xA1i3AvQ7-qZMYzlT5kjo1gf6&export=download \n
 Скачать пользовательскую инструкцию: https://drive.google.com/u/0/uc?id=1gLQItvUmkssP-gnpMVMHyEGXbGwnZ1IC&export=download
   
